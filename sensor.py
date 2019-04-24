@@ -113,15 +113,26 @@ class LuftdatenSensor(Entity):
         self.rest_client.update()
         value = self.rest_client.data
 
-        if value is None:
-            self._state = None
-        else:
+        try:
+            parsed_json = json.loads(value)
+            if not isinstance(parsed_json, dict):
+                _LOGGER.warning("JSON result was not a dictionary")
+                return
+        except ValueError:
+            _LOGGER.warning("REST result could not be parsed as JSON")
+            _LOGGER.debug("Erroneous JSON: %s", value)
+            return
+
+        if value is not None:
             parsed_json = json.loads(value)
 
             sensordata_values = parsed_json['sensordatavalues']
             for sensordata_value in sensordata_values:
                 if sensordata_value['value_type'] == self.sensor_type:
                     self._state = sensordata_value['value']
+        else:
+            _LOGGER.warning("Empty reply found when expecting JSON data")
+
 
 
 class LuftdatenData(object):
