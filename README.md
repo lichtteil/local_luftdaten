@@ -1,11 +1,11 @@
 # Custom Luftdaten component for Home Assistant
 
 ## Installation
-- Create a directory `custom_components` in your Home Assitant config directory (e.g. `~/.homeassistant/custom_components/`)
-- Download and unzip or clone this repository and move it to you `custom_components` directory
+- Create the directory `custom_components/local_luftdaten/` in your Home Assitant config directory (e.g. `~/.homeassistant/custom_components/local_luftdaten/`)
+- Download and unzip or clone this repository and move its content to your `local_luftdaten` directory
 
 ## Configuration
-Create a new sensor entry and adjust the host name or the ip address.
+Create a new sensor entry in your `configuration.yaml` and adjust the host name or the ip address.
 
 ```yaml
 sensor:
