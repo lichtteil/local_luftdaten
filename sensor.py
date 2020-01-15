@@ -29,8 +29,8 @@ _LOGGER = logging.getLogger(__name__)
 
 VOLUME_MICROGRAMS_PER_CUBIC_METER = 'µg/m3'
 
-SENSOR_TEMPERATURE = 'temperature'
-SENSOR_HUMIDITY = 'humidity'
+SENSOR_TEMPERATURE = 'BME280_temperature'
+SENSOR_HUMIDITY = 'BME280_humidity'
 SENSOR_PM1 = 'SDS_P1'
 SENSOR_PM2 = 'SDS_P2'
 
