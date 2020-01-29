@@ -78,8 +78,7 @@ def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
     rest_client.update()
 
     if rest_client.data is None:
-        _LOGGER.error("Unable to fetch Luftdaten data")
-        return False
+        _LOGGER.warning("Unable to fetch Luftdaten data")
 
     devices = []
     for variable in config[CONF_MONITORED_CONDITIONS]:
@@ -119,6 +118,9 @@ class LuftdatenSensor(Entity):
         self.rest_client.update()
         value = self.rest_client.data
 
+        if value is None:
+            return
+
         try:
             parsed_json = json.loads(value)
             if not isinstance(parsed_json, dict):
@@ -129,15 +131,10 @@ class LuftdatenSensor(Entity):
             _LOGGER.debug("Erroneous JSON: %s", value)
             return
 
-        if value is not None:
-            parsed_json = json.loads(value)
-
-            sensordata_values = parsed_json['sensordatavalues']
-            for sensordata_value in sensordata_values:
-                if sensordata_value['value_type'] == self.sensor_type:
-                    self._state = sensordata_value['value']
-        else:
-            _LOGGER.warning("Empty reply found when expecting JSON data")
+        sensordata_values = parsed_json['sensordatavalues']
+        for sensordata_value in sensordata_values:
+            if sensordata_value['value_type'] == self.sensor_type:
+                self._state = sensordata_value['value']
 
 
 
@@ -156,8 +153,8 @@ class LuftdatenData(object):
             with requests.Session() as sess:
                 response = sess.send(
                     self._request, timeout=10, verify=self._verify_ssl)
-
             self.data = response.text
-        except requests.exceptions.RequestException:
-            _LOGGER.error("Error fetching data: %s", self._request)
+
+        except requests.exceptions.RequestException as e:
+            _LOGGER.warning("REST request error: %s", str(e))
             self.data = None
