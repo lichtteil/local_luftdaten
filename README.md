@@ -20,9 +20,14 @@ sensor:
 ```
 
 At the moment following sensor data can be read:
+
 - SDS_P1
 - SDS_P2
 - temperature
 - humidity
+- BME280_temperature
+- BME280_humidity
+- BME280_pressure
+
 
 Please open an issue if you want to see other attributes and provide me with a sample of your sensor data by calling `http://192.168.x.y/data.json`.
