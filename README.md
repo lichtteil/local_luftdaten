@@ -30,4 +30,18 @@ At the moment following sensor data can be read:
 - BME280_pressure
 
 
+## Customizing
+
+Use [Template Sensors](https://www.home-assistant.io/integrations/template/) to round the values or to give them a offset.
+```
+sensor:
+  - platform: template
+    sensors:
+      air_pressure:
+        value_template: '{{ (states("sensor.feinstaubsensor_pressure") | float / 100) | round(1) }}'
+        friendly_name: 'Luftdruck'
+        unit_of_measurement: 'hPa'
+```
+
+
 Please open an issue if you want to see other attributes and provide me with a sample of your sensor data by calling `http://192.168.x.y/data.json`.
