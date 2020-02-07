@@ -25,9 +25,12 @@ At the moment following sensor data can be read:
 - SDS_P2
 - temperature
 - humidity
+- signal
 - BME280_temperature
 - BME280_humidity
 - BME280_pressure
+
+Sensor type `signal` gives the wifi signal strength of the sensor device.
 
 
 ## Customizing
