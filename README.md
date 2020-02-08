@@ -54,7 +54,7 @@ sensor:
 
 
 
-## Calculate equivalent atmospheric pressure at sea level
+### Calculate equivalent atmospheric pressure at sea level
 
 To adjusted the atmospheric pressure to the equivalent sea level pressure you need to use the barometric formula which depends on the altitude and the current temperature.
 In this example we use an altitude of 300m and receive the temperature from our sensor `sensor.feinstaubsensor_temperature`.
