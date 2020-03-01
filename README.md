@@ -5,7 +5,8 @@ This custom component for Home Assistant integrates your (own) local Luftdaten s
 
 ## Installation
 ### HACS
-If you use [HACS](https://hacs.xyz/) you can install and update this component easily via custom repository. Go into HACS -> Settings and use this URL to add the repository: `https://github.com/lichtteil/local_luftdaten.git`
+If you use [HACS](https://hacs.xyz/) you can install and update this component easily via custom repository. Go into HACS -> Settings and use category **Integration** and this URL to add the repository: `https://github.com/lichtteil/local_luftdaten`  
+Now you can install the custom component in the **Integrations** tab of HACS.
 
 ### Manual
 Download and unzip or clone this repository and copy `custom_components/local_luftdaten/` to your configuration directory of Home Assistant, e.g. `~/.homeassistant/custom_components/`.
