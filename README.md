@@ -1,7 +1,7 @@
 # Custom Luftdaten component for Home Assistant
 
 ## About
-This custom component for Home Assistant integrates your (own) local Luftdaten sensor (air quality/particle sensor) without using the cloud. Ich you want to know more about the sensor and how to build one check this website: https://luftdaten.info/en/home-en/
+This custom component for Home Assistant integrates your (own) local Luftdaten sensor (air quality/particle sensor) without using the cloud. If you want to know more about the sensor and how to build one check this website: https://luftdaten.info/en/home-en/
 
 ## Installation
 - Create the directory `custom_components/local_luftdaten/` in your Home Assitant config directory (e.g. `~/.homeassistant/custom_components/local_luftdaten/`)
