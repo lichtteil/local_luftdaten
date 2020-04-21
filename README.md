@@ -45,6 +45,8 @@ At the moment following sensor data can be read:
 - BME280_temperature
 - BME280_humidity
 - BME280_pressure
+- HTU21D_temperature
+- HTU21D_humidity
 
 Sensor type `signal` gives the wifi signal strength of the sensor device.
 
