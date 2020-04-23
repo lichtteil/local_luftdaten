@@ -45,6 +45,10 @@ At the moment following sensor data can be read:
 - BME280_temperature
 - BME280_humidity
 - BME280_pressure
+- BMP_pressure
+- BMP_temperature
+- BMP280_pressure
+- BMP280_temperature
 - HTU21D_temperature
 - HTU21D_humidity
 
