@@ -51,20 +51,20 @@ SENSOR_HTU21D_TEMPERATURE = 'HTU21D_temperature'
 SENSOR_HTU21D_HUMIDITY = 'HTU21D_humidity'
 
 SENSOR_TYPES = {
-    SENSOR_TEMPERATURE: ['Temperature', TEMP_CELSIUS],
-    SENSOR_HUMIDITY: ['Humidity', '%'],
-    SENSOR_BME280_TEMPERATURE: ['Temperature', TEMP_CELSIUS],
-    SENSOR_BME280_HUMIDITY: ['Humidity', '%'],
-    SENSOR_BME280_PRESSURE: ['Pressure', 'Pa'],
-    SENSOR_BMP_TEMPERATURE: ['Temperature', TEMP_CELSIUS],
-    SENSOR_BMP_PRESSURE: ['Pressure', 'Pa'],
-    SENSOR_BMP280_TEMPERATURE: ['Temperature', TEMP_CELSIUS],
-    SENSOR_BMP280_PRESSURE: ['Pressure', 'Pa'],
-    SENSOR_PM1: ['PM10', VOLUME_MICROGRAMS_PER_CUBIC_METER],
-    SENSOR_PM2: ['PM2.5', VOLUME_MICROGRAMS_PER_CUBIC_METER],
-    SENSOR_WIFI_SIGNAL: ['Wifi signal', 'dBm'],
-    SENSOR_HTU21D_TEMPERATURE: ['Temperature', TEMP_CELSIUS],
-    SENSOR_HTU21D_HUMIDITY: ['Humidity', '%']
+    SENSOR_TEMPERATURE: ['Temperature', TEMP_CELSIUS, 'temperature'],
+    SENSOR_HUMIDITY: ['Humidity', '%', 'humidity'],
+    SENSOR_BME280_TEMPERATURE: ['Temperature', TEMP_CELSIUS, 'temperature'],
+    SENSOR_BME280_HUMIDITY: ['Humidity', '%', 'humidity'],
+    SENSOR_BME280_PRESSURE: ['Pressure', 'Pa', 'pressure'],
+    SENSOR_BMP_TEMPERATURE: ['Temperature', TEMP_CELSIUS, 'temperature'],
+    SENSOR_BMP_PRESSURE: ['Pressure', 'Pa', 'pressure'],
+    SENSOR_BMP280_TEMPERATURE: ['Temperature', TEMP_CELSIUS, 'temperature'],
+    SENSOR_BMP280_PRESSURE: ['Pressure', 'Pa', 'pressure'],
+    SENSOR_PM1: ['PM10', VOLUME_MICROGRAMS_PER_CUBIC_METER, None],
+    SENSOR_PM2: ['PM2.5', VOLUME_MICROGRAMS_PER_CUBIC_METER, None],
+    SENSOR_WIFI_SIGNAL: ['Wifi signal', 'dBm', 'signal_strength'],
+    SENSOR_HTU21D_TEMPERATURE: ['Temperature', TEMP_CELSIUS, 'temperature'],
+    SENSOR_HTU21D_HUMIDITY: ['Humidity', '%', 'humidity']
 }
 
 DEFAULT_NAME = 'Luftdaten Sensor'
@@ -114,6 +114,7 @@ class LuftdatenSensor(Entity):
         self._state = None
         self.sensor_type = sensor_type
         self._unit_of_measurement = SENSOR_TYPES[sensor_type][1]
+        self._device_class = SENSOR_TYPES[sensor_type][2]
 
     @property
     def name(self):
@@ -129,6 +130,11 @@ class LuftdatenSensor(Entity):
     def unit_of_measurement(self):
         """Return the unit of measurement of this entity, if any."""
         return self._unit_of_measurement
+
+    @property
+    def device_class(self):
+        """Return the device class of this entity, if any."""
+        return self._device_class
 
     async def async_update(self):
         """Get the latest data from REST API and update the state."""
