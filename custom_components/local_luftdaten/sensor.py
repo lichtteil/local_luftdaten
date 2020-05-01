@@ -10,6 +10,9 @@ https://github.com/lichtteil/local_luftdaten/
 
 import logging
 import asyncio
+import aiohttp
+import async_timeout
+
 import json
 
 from datetime import timedelta
@@ -21,13 +24,16 @@ from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.const import (
     CONF_NAME, CONF_RESOURCE, CONF_VERIFY_SSL, CONF_MONITORED_CONDITIONS,
     TEMP_CELSIUS)
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity import Entity
 import homeassistant.helpers.config_validation as cv
 
+
 _LOGGER = logging.getLogger(__name__)
 
-
 VOLUME_MICROGRAMS_PER_CUBIC_METER = 'µg/m3'
+
+DOMAIN = "local_luftdaten"
 
 SENSOR_TEMPERATURE = 'temperature'
 SENSOR_HUMIDITY = 'humidity'
@@ -80,7 +86,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
 
 
 @asyncio.coroutine
-def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
+async def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
     """Set up the Luftdaten sensor."""
     name = config.get(CONF_NAME)
     host = config.get(CONF_HOST)
@@ -88,11 +94,8 @@ def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
 
     resource = config.get(CONF_RESOURCE).format(host)
 
-    rest_client = LuftdatenData(resource, verify_ssl)
-    rest_client.update()
-
-    if rest_client.data is None:
-        _LOGGER.warning("Unable to fetch Luftdaten data")
+    session = async_get_clientsession(hass, verify_ssl)
+    rest_client = LuftdatenClient(hass.loop, session, resource)
 
     devices = []
     for variable in config[CONF_MONITORED_CONDITIONS]:
@@ -127,13 +130,14 @@ class LuftdatenSensor(Entity):
         """Return the unit of measurement of this entity, if any."""
         return self._unit_of_measurement
 
-    def update(self):
+    async def async_update(self):
         """Get the latest data from REST API and update the state."""
-        self.rest_client.update()
-        value = self.rest_client.data
-
-        if value is None:
+        try:
+            await self.rest_client.async_update()
+        except LuftdatenError:
+            value = None
             return
+        value = self.rest_client.data
 
         try:
             parsed_json = json.loads(value)
@@ -151,24 +155,33 @@ class LuftdatenSensor(Entity):
                 self._state = sensordata_value['value']
 
 
+class LuftdatenError(Exception):
+    pass
 
-class LuftdatenData(object):
+
+class LuftdatenClient(object):
     """Class for handling the data retrieval."""
 
-    def __init__(self, resource, verify_ssl):
+    def __init__(self, loop, session, resource):
         """Initialize the data object."""
-        self._request = requests.Request('GET', resource).prepare()
-        self._verify_ssl = verify_ssl
+        self._loop = loop
+        self._session = session
+        self._resource = resource
         self.data = None
 
-    def update(self):
+    async def async_update(self):
         """Get the latest data from Luftdaten service."""
+        _LOGGER.debug("Get data from %s", str(self._resource))
         try:
-            with requests.Session() as sess:
-                response = sess.send(
-                    self._request, timeout=10, verify=self._verify_ssl)
-            self.data = response.text
-
-        except requests.exceptions.RequestException as e:
-            _LOGGER.warning("REST request error: %s", str(e))
+            with async_timeout.timeout(30, loop=self._loop):
+                response = await self._session.get(self._resource)
+            self.data = await response.text()
+            _LOGGER.debug("Received data: %s", str(self.data))
+        except aiohttp.ClientError as err:
+            _LOGGER.warning("REST request error: {0}".format(err))
             self.data = None
+            raise LuftdatenError
+        except asyncio.TimeoutError:
+            _LOGGER.warning("REST request timeout")
+            self.data = None
+            raise LuftdatenError
