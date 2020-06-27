@@ -49,6 +49,10 @@ SENSOR_PM2 = 'SDS_P2'
 SENSOR_WIFI_SIGNAL = 'signal'
 SENSOR_HTU21D_TEMPERATURE = 'HTU21D_temperature'
 SENSOR_HTU21D_HUMIDITY = 'HTU21D_humidity'
+SENSOR_SPS30_P0 = 'SPS30_P0'
+SENSOR_SPS30_P2 = 'SPS30_P2'
+SENSOR_SPS30_P4 = 'SPS30_P4'
+SENSOR_SPS30_P1 = 'SPS30_P1'
 
 SENSOR_TYPES = {
     SENSOR_TEMPERATURE: ['Temperature', TEMP_CELSIUS, 'temperature'],
@@ -64,7 +68,11 @@ SENSOR_TYPES = {
     SENSOR_PM2: ['PM2.5', VOLUME_MICROGRAMS_PER_CUBIC_METER, None],
     SENSOR_WIFI_SIGNAL: ['Wifi signal', 'dBm', 'signal_strength'],
     SENSOR_HTU21D_TEMPERATURE: ['Temperature', TEMP_CELSIUS, 'temperature'],
-    SENSOR_HTU21D_HUMIDITY: ['Humidity', '%', 'humidity']
+    SENSOR_HTU21D_HUMIDITY: ['Humidity', '%', 'humidity'],
+    SENSOR_SPS30_P0: ['PM1', VOLUME_MICROGRAMS_PER_CUBIC_METER, None],
+    SENSOR_SPS30_P2: ['PM2.5', VOLUME_MICROGRAMS_PER_CUBIC_METER, None],
+    SENSOR_SPS30_P4: ['PM4', VOLUME_MICROGRAMS_PER_CUBIC_METER, None],
+    SENSOR_SPS30_P1: ['PM10', VOLUME_MICROGRAMS_PER_CUBIC_METER, None],
 }
 
 DEFAULT_NAME = 'Luftdaten Sensor'
@@ -135,6 +143,12 @@ class LuftdatenSensor(Entity):
     def device_class(self):
         """Return the device class of this entity, if any."""
         return self._device_class
+
+    @property
+    def icon(self):
+        """Icon of the sensor, if class is None."""
+        if SENSOR_TYPES[self.sensor_type][2] == None:
+            return 'mdi:cloud-search-outline'
 
     async def async_update(self):
         """Get the latest data from REST API and update the state."""
