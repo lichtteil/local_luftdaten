@@ -51,6 +51,10 @@ At the moment following sensor data can be read:
 - BMP280_temperature
 - HTU21D_temperature
 - HTU21D_humidity
+- SPS30_P0
+- SPS30_P2
+- SPS30_P4
+- SPS30_P1
 
 Sensor type `signal` gives the wifi signal strength of the sensor device.
 
