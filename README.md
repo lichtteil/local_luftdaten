@@ -1,4 +1,5 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg)](https://github.com/custom-components/hacs)
+![Validate with hassfest](https://github.com/lichtteil/local_luftdaten/workflows/Validate%20with%20hassfest/badge.svg)
 
 
 # Custom Luftdaten component for Home Assistant
