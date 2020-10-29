@@ -1,4 +1,5 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg)](https://github.com/custom-components/hacs)
+![Validate with hassfest](https://github.com/lichtteil/local_luftdaten/workflows/Validate%20with%20hassfest/badge.svg)
 
 
 # Custom Luftdaten component for Home Assistant
@@ -55,6 +56,9 @@ At the moment following sensor data can be read:
 - SPS30_P2
 - SPS30_P4
 - SPS30_P1
+- PMS_P0
+- PMS_P1
+- PMS_P2
 
 Sensor type `signal` gives the wifi signal strength of the sensor device.
 
