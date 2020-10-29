@@ -56,6 +56,9 @@ At the moment following sensor data can be read:
 - SPS30_P2
 - SPS30_P4
 - SPS30_P1
+- PMS_P0
+- PMS_P1
+- PMS_P2
 
 Sensor type `signal` gives the wifi signal strength of the sensor device.
 
