@@ -59,6 +59,8 @@ At the moment following sensor data can be read:
 - PMS_P0
 - PMS_P1
 - PMS_P2
+- HECA_temperature
+- HECA_humidity
 
 Sensor type `signal` gives the wifi signal strength of the sensor device.
 
