@@ -22,8 +22,13 @@ import voluptuous as vol
 
 from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.const import (
-    CONF_NAME, CONF_RESOURCE, CONF_VERIFY_SSL, CONF_MONITORED_CONDITIONS,
-    TEMP_CELSIUS)
+    CONF_NAME,
+    CONF_RESOURCE,
+    CONF_VERIFY_SSL,
+    CONF_MONITORED_CONDITIONS,
+    CONF_SCAN_INTERVAL,
+    TEMP_CELSIUS
+)
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity import Entity
 import homeassistant.helpers.config_validation as cv
@@ -93,10 +98,11 @@ SENSOR_TYPES = {
 DEFAULT_NAME = 'Luftdaten Sensor'
 DEFAULT_RESOURCE = 'http://{}/data.json'
 DEFAULT_VERIFY_SSL = True
+DEFAULT_SCAN_INTERVAL = timedelta(minutes=3)
 
 CONF_HOST = 'host'
 
-SCAN_INTERVAL = timedelta(minutes=3)
+
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Required(CONF_HOST): cv.string,
@@ -104,7 +110,8 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
         vol.All(cv.ensure_list, [vol.In(SENSOR_TYPES)]),
     vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
     vol.Optional(CONF_RESOURCE, default=DEFAULT_RESOURCE): cv.string,
-    vol.Optional(CONF_VERIFY_SSL, default=DEFAULT_VERIFY_SSL): cv.boolean
+    vol.Optional(CONF_VERIFY_SSL, default=DEFAULT_VERIFY_SSL): cv.boolean,
+    vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): cv.time_period
 })
 
 
