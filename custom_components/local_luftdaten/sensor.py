@@ -41,7 +41,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
 
 
 @asyncio.coroutine
-async def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
+async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
     """Set up the Luftdaten sensor."""
     name = config.get(CONF_NAME)
     host = config.get(CONF_HOST)
@@ -56,7 +56,7 @@ async def async_setup_platform(hass, config, async_add_devices, discovery_info=N
     for variable in config[CONF_MONITORED_CONDITIONS]:
         devices.append(LuftdatenSensor(rest_client, name, variable))
 
-    async_add_devices(devices, True)
+    async_add_entities(devices, True)
 
 
 class LuftdatenSensor(Entity):
@@ -70,6 +70,7 @@ class LuftdatenSensor(Entity):
         self.sensor_type = sensor_type
         self._unit_of_measurement = SENSOR_TYPES[sensor_type][1]
         self._device_class = SENSOR_TYPES[sensor_type][2]
+        self._unique_id = '{} {}'.format(self._name, SENSOR_TYPES[self.sensor_type][0])
 
     @property
     def name(self):
@@ -100,6 +101,10 @@ class LuftdatenSensor(Entity):
             return 'mdi:thought-bubble'
         elif SENSOR_TYPES[self.sensor_type][2] == None:
             return 'mdi:cloud-search-outline'
+
+    @property
+    def unique_id(self):
+        return self._unique_id
 
     async def async_update(self):
         """Get the latest data from REST API and update the state."""
