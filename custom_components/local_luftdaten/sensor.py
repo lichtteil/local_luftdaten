@@ -94,7 +94,11 @@ class LuftdatenSensor(Entity):
     @property
     def icon(self):
         """Icon of the sensor, if class is None."""
-        if SENSOR_TYPES[self.sensor_type][2] == None:
+        if SENSOR_TYPES[self.sensor_type][0] == "PM2.5":
+            return 'mdi:thought-bubble-outline'
+        elif SENSOR_TYPES[self.sensor_type][0] == "PM10":
+            return 'mdi:thought-bubble'
+        elif SENSOR_TYPES[self.sensor_type][2] == None:
             return 'mdi:cloud-search-outline'
 
     async def async_update(self):
