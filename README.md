@@ -24,10 +24,19 @@ In the end your file structure should look like that:
 ## Configuration
 Create a new sensor entry in your `configuration.yaml` and adjust the host name or the ip address.
 
+|Parameter              |Type    | Necessity    | Description
+|:----------------------|:-------|:------------ |:------------
+|`host`                 | number | required     | The IP-Address of the sensor
+|`scan_interval`        | number | default: 180 | The frequency (in seconds) between data updates.
+|`name`                 | string | required     | Name of the sensor
+|`monitored_conditions` | list   | required     | List of the monitored sensors
+
+
 ```yaml
 sensor:
   - platform: local_luftdaten
     host: 192.168.0.123
+    scan_interval: 180
     name: Feinstaubsensor
     monitored_conditions:
       - SDS_P1
