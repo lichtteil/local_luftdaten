@@ -24,10 +24,19 @@ In the end your file structure should look like that:
 ## Configuration
 Create a new sensor entry in your `configuration.yaml` and adjust the host name or the ip address.
 
+|Parameter              |Type    | Necessity    | Description
+|:----------------------|:-------|:------------ |:------------
+|`host`                 | string | required     | IP address of the sensor
+|`scan_interval`        | number | default: 180 | Frequency (in seconds) between updates
+|`name`                 | string | required     | Name of the sensor
+|`monitored_conditions` | list   | required     | List of the monitored sensors
+
+
 ```yaml
 sensor:
   - platform: local_luftdaten
     host: 192.168.0.123
+    scan_interval: 180
     name: Feinstaubsensor
     monitored_conditions:
       - SDS_P1
@@ -75,7 +84,8 @@ Please open an issue if you want to see other attributes and provide me with a s
 
 ### Rounding and offset
 
-Use [Template Sensors](https://www.home-assistant.io/integrations/template/) to round the values or to give them a offset.
+Use [Template Sensors](https://www.home-assistant.io/integrations/template/) to round the values or to give them an offset.
+
 ```
 sensor:
   - platform: template
