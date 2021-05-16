@@ -74,7 +74,7 @@ class LuftdatenSensor(Entity):
         self.sensor_type = sensor_type
         self._unit_of_measurement = SENSOR_TYPES[sensor_type][1]
         self._device_class = SENSOR_TYPES[sensor_type][2]
-        self._unique_id = '{} {}'.format(self._name, SENSOR_TYPES[self.sensor_type][0])
+        self._unique_id = '{}-{}'.format(self._name, self.sensor_type)
 
     @property
     def name(self):
