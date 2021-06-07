@@ -144,7 +144,6 @@ class LuftdatenClient(object):
 
     async def async_update(self):
         """Get the latest data from Luftdaten service."""
-        _LOGGER.debug("Get data from %s", str(self._resource))
 
         async with self.lock:
             # Time difference since last data update
@@ -153,13 +152,14 @@ class LuftdatenClient(object):
             if (callTimeDiff < self.scan_interval):
                 if self.data != None:
                     return
-            
+
             # Handle calltime differences: substract 5 second from current time
             self.lastUpdate = datetime.datetime.now() - timedelta(seconds=5)
 
             # Query local device
             responseData = None
             try:
+                _LOGGER.debug("Get data from %s", str(self._resource))
                 with async_timeout.timeout(30, loop=self._loop):
                     response = await self._session.get(self._resource)
                 responseData = await response.text()
