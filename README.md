@@ -17,6 +17,7 @@ Download and unzip or clone this repository and copy `custom_components/local_lu
 In the end your file structure should look like that:
 ```
 ~/.homeassistant/custom_components/local_luftdaten/__init__.py
+~/.homeassistant/custom_components/local_luftdaten/const.py
 ~/.homeassistant/custom_components/local_luftdaten/manifest.json
 ~/.homeassistant/custom_components/local_luftdaten/sensor.py
 ```
