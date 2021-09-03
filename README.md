@@ -73,6 +73,8 @@ At the moment following sensor data can be read:
 - HECA_humidity
 - HPM_P1 
 - HPM_P2
+- SHT3X_temperature
+- SHT3X_humidity
 
 Sensor type `signal` gives the wifi signal strength of the sensor device.
 
