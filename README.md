@@ -48,33 +48,34 @@ sensor:
 
 At the moment following sensor data can be read:
 
-- SDS_P1
-- SDS_P2
-- temperature
-- humidity
-- signal
-- BME280_temperature
 - BME280_humidity
 - BME280_pressure
+- BME280_temperature
 - BMP_pressure
 - BMP_temperature
 - BMP280_pressure
 - BMP280_temperature
-- HTU21D_temperature
+- DS18B20_temperature
+- HECA_humidity
+- HECA_temperature
+- HPM_P1
+- HPM_P2
 - HTU21D_humidity
-- SPS30_P0
-- SPS30_P2
-- SPS30_P4
-- SPS30_P1
+- HTU21D_temperature
+- humidity
+- SDS_P1
+- SDS_P2
 - PMS_P0
 - PMS_P1
 - PMS_P2
-- HECA_temperature
-- HECA_humidity
-- HPM_P1 
-- HPM_P2
-- SHT3X_temperature
 - SHT3X_humidity
+- SHT3X_temperature
+- SPS30_P0
+- SPS30_P1
+- SPS30_P2
+- SPS30_P4
+- temperature
+- signal
 
 Sensor type `signal` gives the wifi signal strength of the sensor device.
 
