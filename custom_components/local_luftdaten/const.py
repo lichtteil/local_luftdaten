@@ -48,6 +48,9 @@ SENSOR_SPS30_P0 = 'SPS30_P0'
 SENSOR_SPS30_P1 = 'SPS30_P1'
 SENSOR_SPS30_P2 = 'SPS30_P2'
 SENSOR_SPS30_P4 = 'SPS30_P4'
+SENSOR_DNMS_LA_EQ = 'DNMS_noise_LAeq'
+SENSOR_DNMS_LA_MIN = 'DNMS_noise_LA_min'
+SENSOR_DNMS_LA_MAX = 'DNMS_noise_LA_max'
 SENSOR_TEMPERATURE = 'temperature'
 SENSOR_WIFI_SIGNAL = 'signal'
 
@@ -232,6 +235,27 @@ SENSOR_DESCRIPTIONS = {
         key=SENSOR_SPS30_P4,
         name='PM4',
         native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SENSOR_DNMS_LA_EQ: SensorEntityDescription(
+        device_class=SensorDeviceClass.SOUND_PRESSURE,
+        key=SENSOR_DNMS_LA_EQ,
+        name='DNMS LAeq',
+        native_unit_of_measurement=SIGNAL_STRENGTH_DECIBELS,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SENSOR_DNMS_LA_MIN: SensorEntityDescription(
+        device_class=SensorDeviceClass.SOUND_PRESSURE,
+        key=SENSOR_DNMS_LA_MIN,
+        name='DNMS LAmin',
+        native_unit_of_measurement=SIGNAL_STRENGTH_DECIBELS,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SENSOR_DNMS_LA_MAX: SensorEntityDescription(
+        device_class=SensorDeviceClass.SOUND_PRESSURE,
+        key=SENSOR_DNMS_LA_MAX,
+        name='DNMS LAmax',
+        native_unit_of_measurement=SIGNAL_STRENGTH_DECIBELS,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SENSOR_TEMPERATURE: SensorEntityDescription(
