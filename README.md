@@ -74,6 +74,12 @@ At the moment following sensor data can be read:
 - SPS30_P1
 - SPS30_P2
 - SPS30_P4
+- SEN5X_P0
+- SEN5X_P1
+- SEN5X_P2
+- SEN5X_P4
+- SEN5X_NOX
+- SEN5X_VOC
 - temperature
 - signal
 
