@@ -12,7 +12,6 @@ import logging
 import asyncio
 from typing import Optional
 import aiohttp
-import async_timeout
 import datetime
 
 import json
@@ -170,7 +169,7 @@ class LuftdatenClient(object):
             responseData = None
             try:
                 _LOGGER.debug("Get data from %s", str(self._resource))
-                with async_timeout.timeout(30):
+                async with asyncio.timeout(30):
                     response = await self._session.get(self._resource)
                 responseData = await response.text()
                 _LOGGER.debug("Received data: %s", str(self.data))
