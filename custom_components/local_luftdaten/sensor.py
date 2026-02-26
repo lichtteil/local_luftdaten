@@ -46,6 +46,7 @@ from homeassistant.components.sensor import (
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import homeassistant.helpers.config_validation as cv
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceInfo
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -95,7 +96,7 @@ async def async_setup_entry(
     rest_client = LuftdatenClient(session, resource, scan_interval)
 
     entities = [
-        LuftdatenSensor(rest_client, name, SENSOR_DESCRIPTIONS[variable])
+        LuftdatenSensor(rest_client, name, host, SENSOR_DESCRIPTIONS[variable])
         for variable in data[CONF_MONITORED_CONDITIONS]
     ]
     async_add_entities(entities, True)
@@ -105,13 +106,15 @@ class LuftdatenSensor(SensorEntity):
     """Implementation of a LuftdatenSensor sensor."""
 
     _name: str
+    _host: str
     _native_value: Optional[Any]
     _rest_client: "LuftdatenClient"
 
-    def __init__(self, rest_client, name, description):
+    def __init__(self, rest_client, name, host, description):
         """Initialize the LuftdatenSensor sensor."""
         self._rest_client = rest_client
         self._name = name
+        self._host = host
         self._native_value = None
 
         self.entity_description = description
@@ -140,6 +143,16 @@ class LuftdatenSensor(SensorEntity):
             return 'mdi:thought-bubble'
 
         return None
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device information for grouping entities into one device."""
+        return DeviceInfo(
+            identifiers={(DOMAIN, self._host)},
+            name=self._name,
+            manufacturer="Luftdaten",
+            model="Local Sensor",
+        )
 
     async def async_update(self):
         """Get the latest data from REST API and update the state."""
