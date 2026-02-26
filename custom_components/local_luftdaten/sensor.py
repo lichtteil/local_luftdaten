@@ -145,6 +145,20 @@ class LuftdatenSensor(SensorEntity):
         return None
 
     @property
+    def suggested_display_precision(self) -> int | None:
+        """Suggest 1 decimal for humidity, PM, pressure, and temperature."""
+        if self.device_class in {
+            SensorDeviceClass.HUMIDITY,
+            SensorDeviceClass.PM1,
+            SensorDeviceClass.PM25,
+            SensorDeviceClass.PM10,
+            SensorDeviceClass.PRESSURE,
+            SensorDeviceClass.TEMPERATURE,
+        }:
+            return 1
+        return None
+
+    @property
     def device_info(self) -> DeviceInfo:
         """Return device information for grouping entities into one device."""
         return DeviceInfo(
