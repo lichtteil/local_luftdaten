@@ -23,7 +23,15 @@ In the end your file structure should look like that:
 ```
 
 ## Configuration
-Create a new sensor entry in your `configuration.yaml` and adjust the host name or the ip address.
+This integration now uses Home Assistant UI config flow.
+
+1. Go to **Settings -> Devices & Services -> Add Integration**.
+2. Search for **Local Luftdaten**.
+3. Fill in host, monitored conditions, and optional settings.
+
+### YAML migration
+Existing YAML platform config is automatically imported into a config entry at startup.
+After import, remove the `sensor: - platform: local_luftdaten` block from `configuration.yaml`.
 
 |Parameter              |Type    | Necessity    | Description
 |:----------------------|:-------|:------------ |:------------
@@ -34,6 +42,7 @@ Create a new sensor entry in your `configuration.yaml` and adjust the host name 
 
 
 ```yaml
+# Legacy format (auto-imported once):
 sensor:
   - platform: local_luftdaten
     host: 192.168.0.123
