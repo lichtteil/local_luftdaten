@@ -27,7 +27,7 @@ from .const import (
     SENSOR_DESCRIPTIONS,
 )
 
-DEFAULT_MONITORED_CONDITIONS = ["SDS_P1", "SDS_P2", "temperature", "humidity"]
+DEFAULT_MONITORED_CONDITIONS = ["SDS_P1", "SDS_P2", "signal"]
 
 
 def _step_user_schema(user_input: dict[str, Any] | None = None) -> vol.Schema:
