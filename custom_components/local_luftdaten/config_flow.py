@@ -113,12 +113,11 @@ class LocalLuftdatenOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
         """Manage options."""
         if user_input is not None:
-            data = {**self.config_entry.data, **user_input}
-            self.hass.config_entries.async_update_entry(self.config_entry, data=data)
-            return self.async_create_entry(title="", data={})
+            return self.async_create_entry(title="", data=user_input)
 
+        current = {**self.config_entry.data, **self.config_entry.options}
         return self.async_show_form(
             step_id="init",
-            data_schema=_step_user_schema(self.config_entry.data),
+            data_schema=_step_user_schema(current),
             errors={},
         )

@@ -84,7 +84,7 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities
 ) -> None:
     """Set up the sensor platform from a config entry."""
-    data = entry.data
+    data = {**entry.data, **entry.options}
 
     name = data[CONF_NAME]
     host = data[CONF_HOST]
