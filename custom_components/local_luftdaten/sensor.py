@@ -222,7 +222,7 @@ class LuftdatenClient(object):
                 async with asyncio.timeout(30):
                     response = await self._session.get(self._resource)
                 responseData = await response.text()
-                _LOGGER.debug("Received data: %s", str(self.data))
+                _LOGGER.debug("Received data: %s", responseData)
             except aiohttp.ClientError as err:
                 _LOGGER.warning("REST request error: {0}".format(err))
                 self.data = None
