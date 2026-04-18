@@ -12,15 +12,8 @@ This custom component for Home Assistant integrates your (own) local Luftdaten s
 If you use [HACS](https://hacs.xyz/) you can install and update this component easily via the default repository. Go into HACS -> Integrations and search for **luftdaten**.
 
 ### Manual
-Download and unzip or clone this repository and copy `custom_components/local_luftdaten/` to your configuration directory of Home Assistant, e.g. `~/.homeassistant/custom_components/`.
+Download and unzip or clone this repository and copy `local_luftdaten/` from `custom_components/` to `~/.homeassistant/custom_components/`.
 
-In the end your file structure should look like that:
-```
-~/.homeassistant/custom_components/local_luftdaten/__init__.py
-~/.homeassistant/custom_components/local_luftdaten/const.py
-~/.homeassistant/custom_components/local_luftdaten/manifest.json
-~/.homeassistant/custom_components/local_luftdaten/sensor.py
-```
 
 ## Configuration
 This integration now uses Home Assistant UI config flow.
@@ -103,16 +96,14 @@ Please open an issue if you want to see other attributes and provide me with a s
 
 ### Rounding and offset
 
-Use [Template Sensors](https://www.home-assistant.io/integrations/template/) to round the values or to give them an offset.
+Use [Template Sensors](https://www.home-assistant.io/integrations/template/#sensor) to round the values or to give them an offset.
 
-```
-sensor:
-  - platform: template
-    sensors:
-      temperature:
-        value_template: '{{ (states("sensor.feinstaubsensor_temperature") | float) | round(1) - 2}}'
-        friendly_name: 'Temperature'
+```yaml
+template:
+  - sensor:
+      - name: Temperature
         unit_of_measurement: '°C'
+        state: '{{ (states("sensor.feinstaubsensor_temperature") | float) | round(1) - 2 }}'
 ```
 
 
