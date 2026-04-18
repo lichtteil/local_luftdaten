@@ -1,0 +1,36 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Local Luftdaten",
+        "description": "Configure your local Luftdaten sensor.",
+        "data": {
+          "host": "Host",
+          "monitored_conditions": "Monitored conditions",
+          "name": "Name",
+          "resource": "Resource URL template",
+          "verify_ssl": "Verify SSL certificate",
+          "scan_interval": "Scan interval (seconds)"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "This host is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Local Luftdaten options",
+        "data": {
+          "host": "Host",
+          "monitored_conditions": "Monitored conditions",
+          "name": "Name",
+          "resource": "Resource URL template",
+          "verify_ssl": "Verify SSL certificate",
+          "scan_interval": "Scan interval (seconds)"
+        }
+      }
+    }
+  }
+}

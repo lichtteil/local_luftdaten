@@ -4,6 +4,7 @@
   "documentation": "https://github.com/lichtteil/local_luftdaten/",
   "issue_tracker": "https://github.com/lichtteil/local_luftdaten/issues",
   "dependencies": [],
+  "config_flow": true,
   "codeowners": ["@lichtteil"],
   "requirements": [],
   "version": "2.2.0",
