@@ -1,12 +1,12 @@
 {
   "domain": "local_luftdaten",
   "name": "Local Luftdaten sensor",
-  "documentation": "https://github.com/lichtteil/local_luftdaten/",
-  "issue_tracker": "https://github.com/lichtteil/local_luftdaten/issues",
-  "dependencies": [],
-  "config_flow": true,
   "codeowners": ["@lichtteil"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/lichtteil/local_luftdaten/",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/lichtteil/local_luftdaten/issues",
   "requirements": [],
-  "version": "2.2.0",
-  "iot_class": "local_polling"
+  "version": "2.4.0"
 }
