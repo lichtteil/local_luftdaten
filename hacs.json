@@ -1,5 +1,5 @@
 {
   "name": "Local Luftdaten Sensor",
   "render_readme": true,
-  "domains": "sensor"
+  "domains": ["sensor"]
 }
