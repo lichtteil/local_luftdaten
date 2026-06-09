@@ -70,6 +70,7 @@ SENSOR_DESCRIPTIONS = {
         key=SENSOR_BME280_PRESSURE,
         name='Pressure',
         native_unit_of_measurement=UnitOfPressure.PA,
+        suggested_unit_of_measurement=UnitOfPressure.HPA,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SENSOR_BME280_TEMPERATURE: SensorEntityDescription(
@@ -84,6 +85,7 @@ SENSOR_DESCRIPTIONS = {
         key=SENSOR_BMP_PRESSURE,
         name='Pressure',
         native_unit_of_measurement=UnitOfPressure.PA,
+        suggested_unit_of_measurement=UnitOfPressure.HPA,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SENSOR_BMP_TEMPERATURE: SensorEntityDescription(
@@ -105,6 +107,7 @@ SENSOR_DESCRIPTIONS = {
         key=SENSOR_BMP280_PRESSURE,
         name='Pressure',
         native_unit_of_measurement=UnitOfPressure.PA,
+        suggested_unit_of_measurement=UnitOfPressure.HPA,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SENSOR_DS18B20_TEMPERATURE: SensorEntityDescription(

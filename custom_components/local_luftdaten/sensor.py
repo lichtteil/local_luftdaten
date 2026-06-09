@@ -8,21 +8,25 @@ Licensed under MIT. All rights reserved.
 https://github.com/lichtteil/local_luftdaten/
 """
 
+from __future__ import annotations
+
 import logging
 import asyncio
-from typing import Optional
+from typing import Any, Optional
 import aiohttp
-import async_timeout
 import datetime
 
 import json
 
+from homeassistant import config_entries
+from homeassistant.config_entries import ConfigEntry
 from .const import (
+    DOMAIN,
     DEFAULT_NAME,
     DEFAULT_RESOURCE,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_VERIFY_SSL,
-    SENSOR_DESCRIPTIONS
+    SENSOR_DESCRIPTIONS,
 )
 from homeassistant.const import (
     CONF_HOST,
@@ -37,11 +41,12 @@ import voluptuous as vol
 from homeassistant.components.sensor import (
     PLATFORM_SCHEMA,
     SensorDeviceClass,
-    SensorEntity
+    SensorEntity,
 )
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.entity import Entity
 import homeassistant.helpers.config_validation as cv
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceInfo
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -59,37 +64,57 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
 
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
-    """Set up the Luftdaten sensor."""
-    name = config.get(CONF_NAME)
-    host = config.get(CONF_HOST)
-    scan_interval = config.get(CONF_SCAN_INTERVAL)
+    """Import YAML config into a config entry."""
+    await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_IMPORT},
+        data={
+            CONF_HOST: config[CONF_HOST],
+            CONF_MONITORED_CONDITIONS: config[CONF_MONITORED_CONDITIONS],
+            CONF_NAME: config[CONF_NAME],
+            CONF_RESOURCE: config[CONF_RESOURCE],
+            CONF_VERIFY_SSL: config[CONF_VERIFY_SSL],
+            CONF_SCAN_INTERVAL: int(config[CONF_SCAN_INTERVAL].total_seconds()),
+        },
+    )
+    return
 
-    verify_ssl = config.get(CONF_VERIFY_SSL)
 
-    resource = config.get(CONF_RESOURCE).format(host)
+async def async_setup_entry(
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities
+) -> None:
+    """Set up the sensor platform from a config entry."""
+    data = {**entry.data, **entry.options}
+
+    name = data[CONF_NAME]
+    host = data[CONF_HOST]
+    scan_interval = datetime.timedelta(seconds=data[CONF_SCAN_INTERVAL])
+    verify_ssl = data[CONF_VERIFY_SSL]
+    resource = data[CONF_RESOURCE].format(host)
 
     session = async_get_clientsession(hass, verify_ssl)
     rest_client = LuftdatenClient(session, resource, scan_interval)
 
-    devices = []
-    for variable in config[CONF_MONITORED_CONDITIONS]:
-        devices.append(
-            LuftdatenSensor(rest_client, name, SENSOR_DESCRIPTIONS[variable]))
-
-    async_add_entities(devices, True)
+    entities = [
+        LuftdatenSensor(rest_client, name, host, SENSOR_DESCRIPTIONS[variable])
+        for variable in data[CONF_MONITORED_CONDITIONS]
+    ]
+    async_add_entities(entities, True)
 
 
 class LuftdatenSensor(SensorEntity):
     """Implementation of a LuftdatenSensor sensor."""
 
     _name: str
-    _native_value: Optional[any]
+    _host: str
+    _native_value: Optional[Any]
     _rest_client: "LuftdatenClient"
 
-    def __init__(self, rest_client, name, description):
+    def __init__(self, rest_client, name, host, description):
         """Initialize the LuftdatenSensor sensor."""
         self._rest_client = rest_client
         self._name = name
+        self._host = host
         self._native_value = None
 
         self.entity_description = description
@@ -118,6 +143,30 @@ class LuftdatenSensor(SensorEntity):
             return 'mdi:thought-bubble'
 
         return None
+
+    @property
+    def suggested_display_precision(self) -> int | None:
+        """Suggest 1 decimal for humidity, PM, pressure, and temperature."""
+        if self.device_class in {
+            SensorDeviceClass.HUMIDITY,
+            SensorDeviceClass.PM1,
+            SensorDeviceClass.PM25,
+            SensorDeviceClass.PM10,
+            SensorDeviceClass.PRESSURE,
+            SensorDeviceClass.TEMPERATURE,
+        }:
+            return 1
+        return None
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device information for grouping entities into one device."""
+        return DeviceInfo(
+            identifiers={(DOMAIN, self._host)},
+            name=self._name,
+            manufacturer="Luftdaten",
+            model="Local Sensor",
+        )
 
     async def async_update(self):
         """Get the latest data from REST API and update the state."""
@@ -159,8 +208,8 @@ class LuftdatenClient(object):
             # Time difference since last data update
             callTimeDiff = datetime.datetime.now() - self.lastUpdate
             # Fetch sensor values only once per scan_interval
-            if (callTimeDiff < self.scan_interval):
-                if self.data != None:
+            if callTimeDiff < self.scan_interval:
+                if self.data is not None:
                     return
 
             # Handle calltime differences: substract 5 second from current time
@@ -170,10 +219,10 @@ class LuftdatenClient(object):
             responseData = None
             try:
                 _LOGGER.debug("Get data from %s", str(self._resource))
-                with async_timeout.timeout(30):
+                async with asyncio.timeout(30):
                     response = await self._session.get(self._resource)
                 responseData = await response.text()
-                _LOGGER.debug("Received data: %s", str(self.data))
+                _LOGGER.debug("Received data: %s", responseData)
             except aiohttp.ClientError as err:
                 _LOGGER.warning("REST request error: {0}".format(err))
                 self.data = None
