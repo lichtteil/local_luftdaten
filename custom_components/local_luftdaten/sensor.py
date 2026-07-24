@@ -214,7 +214,8 @@ class LuftdatenClient(object):
         """Initialize the data object."""
         self._session = session
         self._resource = resource
-        self.lastUpdate = datetime.datetime.now()
+        # Start in the past so the first poll fetches immediately.
+        self.lastUpdate = datetime.datetime.now() - scan_interval
         self.scan_interval = scan_interval
         self.data = None
         self.lastSuccess = None
@@ -232,12 +233,13 @@ class LuftdatenClient(object):
         """Get the latest data from Luftdaten service."""
 
         async with self.lock:
-            # Time difference since last data update
+            # Attempt a fetch only once per scan_interval. This applies whether
+            # the last attempt succeeded or failed, so an unreachable device is
+            # not re-polled on every HA update cycle (HA polls entities far more
+            # often than scan_interval).
             callTimeDiff = datetime.datetime.now() - self.lastUpdate
-            # Fetch sensor values only once per scan_interval
             if callTimeDiff < self.scan_interval:
-                if self.data is not None:
-                    return
+                return
 
             # Handle calltime differences: substract 5 second from current time
             self.lastUpdate = datetime.datetime.now() - datetime.timedelta(seconds=5)
@@ -265,9 +267,9 @@ class LuftdatenClient(object):
                         await asyncio.sleep(REQUEST_RETRY_DELAY)
             else:
                 # All attempts failed. Keep the last known data instead of
-                # clearing it: a shared client would otherwise re-fetch and
-                # hammer the busy device. Sensors keep their last readings for
-                # up to STALE_AFTER_INTERVALS, then go unavailable.
+                # clearing it: sensors hold their last readings for up to
+                # STALE_AFTER_INTERVALS, then go unavailable. The next attempt
+                # is gated to one scan_interval from now (lastUpdate above).
                 _LOGGER.warning(
                     "REST request failed after %d attempts: %s",
                     REQUEST_RETRIES + 1, last_err,
