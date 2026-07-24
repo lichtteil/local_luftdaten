@@ -99,7 +99,7 @@ async def async_setup_entry(
         LuftdatenSensor(rest_client, name, host, SENSOR_DESCRIPTIONS[variable])
         for variable in data[CONF_MONITORED_CONDITIONS]
     ]
-    async_add_entities(entities, True)
+    async_add_entities(entities, False)
 
 
 class LuftdatenSensor(SensorEntity):
