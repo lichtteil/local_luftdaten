@@ -70,6 +70,9 @@ At the moment following sensor data can be read:
 - PMS_P0
 - PMS_P1
 - PMS_P2
+- SCD30_co2_ppm
+- SCD30_humidity
+- SCD30_temperature
 - SHT3X_humidity
 - SHT3X_temperature
 - SPS30_P0
