@@ -9,5 +9,5 @@
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/lichtteil/local_luftdaten/issues",
   "requirements": [],
-  "version": "2.4.0"
+  "version": "2.5.0-beta.1"
 }
