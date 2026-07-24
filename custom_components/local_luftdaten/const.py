@@ -7,6 +7,7 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.const import (
     CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+    CONCENTRATION_PARTS_PER_MILLION,
     PERCENTAGE,
     UnitOfPressure,
     SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
@@ -42,6 +43,9 @@ SENSOR_PM2 = 'SDS_P2'
 SENSOR_PMS_P0 = 'PMS_P0'
 SENSOR_PMS_P1 = 'PMS_P1'
 SENSOR_PMS_P2 = 'PMS_P2'
+SENSOR_SCD30_CO2 = 'SCD30_co2_ppm'
+SENSOR_SCD30_HUMIDITY = 'SCD30_humidity'
+SENSOR_SCD30_TEMPERATURE = 'SCD30_temperature'
 SENSOR_SHT3X_HUMIDITY = 'SHT3X_humidity'
 SENSOR_SHT3X_TEMPERATURE = 'SHT3X_temperature'
 SENSOR_SPS30_P0 = 'SPS30_P0'
@@ -199,6 +203,27 @@ SENSOR_DESCRIPTIONS = {
         key=SENSOR_PMS_P2,
         name='PM2.5',
         native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SENSOR_SCD30_CO2: SensorEntityDescription(
+        device_class=SensorDeviceClass.CO2,
+        key=SENSOR_SCD30_CO2,
+        name='CO2',
+        native_unit_of_measurement=CONCENTRATION_PARTS_PER_MILLION,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SENSOR_SCD30_HUMIDITY: SensorEntityDescription(
+        device_class=SensorDeviceClass.HUMIDITY,
+        key=SENSOR_SCD30_HUMIDITY,
+        name='Humidity',
+        native_unit_of_measurement=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SENSOR_SCD30_TEMPERATURE: SensorEntityDescription(
+        device_class=SensorDeviceClass.TEMPERATURE,
+        key=SENSOR_SCD30_TEMPERATURE,
+        name='Temperature',
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SENSOR_SHT3X_HUMIDITY: SensorEntityDescription(
