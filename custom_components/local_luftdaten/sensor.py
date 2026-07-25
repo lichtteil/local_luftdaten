@@ -51,6 +51,19 @@ from homeassistant.helpers.device_registry import DeviceInfo
 
 _LOGGER = logging.getLogger(__name__)
 
+# Request timeout in seconds. Must cover the SDS011 sample/transmit window
+# (~25s), during which the device's web server may be unresponsive.
+REQUEST_TIMEOUT = 30
+# Number of extra attempts after the first failure. A poll landing in the
+# sample window usually succeeds on retry once the window closes.
+REQUEST_RETRIES = 2
+# Delay between attempts in seconds.
+REQUEST_RETRY_DELAY = 3
+# Mark sensors unavailable once the last successful fetch is older than this
+# many scan intervals, so a persistently unreachable device stops reporting
+# stale readings instead of holding them indefinitely.
+STALE_AFTER_INTERVALS = 3
+
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Required(CONF_HOST): cv.string,
@@ -135,6 +148,11 @@ class LuftdatenSensor(SensorEntity):
         return self._native_value
 
     @property
+    def available(self) -> bool:
+        """Return False when data is too stale (device unreachable)."""
+        return self._rest_client.is_data_fresh
+
+    @property
     def icon(self):
         """Return the icon to use in the frontend, if any."""
         if self.device_class in [SensorDeviceClass.PM1, SensorDeviceClass.PM25]:
@@ -196,40 +214,66 @@ class LuftdatenClient(object):
         """Initialize the data object."""
         self._session = session
         self._resource = resource
-        self.lastUpdate = datetime.datetime.now()
+        # Start in the past so the first poll fetches immediately.
+        self.lastUpdate = datetime.datetime.now() - scan_interval
         self.scan_interval = scan_interval
         self.data = None
+        self.lastSuccess = None
         self.lock = asyncio.Lock()
+
+    @property
+    def is_data_fresh(self) -> bool:
+        """Whether the last successful fetch is recent enough to trust."""
+        if self.data is None or self.lastSuccess is None:
+            return False
+        age = datetime.datetime.now() - self.lastSuccess
+        return age < self.scan_interval * STALE_AFTER_INTERVALS
 
     async def async_update(self):
         """Get the latest data from Luftdaten service."""
 
         async with self.lock:
-            # Time difference since last data update
+            # Attempt a fetch only once per scan_interval. This applies whether
+            # the last attempt succeeded or failed, so an unreachable device is
+            # not re-polled on every HA update cycle (HA polls entities far more
+            # often than scan_interval).
             callTimeDiff = datetime.datetime.now() - self.lastUpdate
-            # Fetch sensor values only once per scan_interval
             if callTimeDiff < self.scan_interval:
-                if self.data is not None:
-                    return
+                return
 
             # Handle calltime differences: substract 5 second from current time
             self.lastUpdate = datetime.datetime.now() - datetime.timedelta(seconds=5)
 
-            # Query local device
+            # Query local device, retrying on transient failures. The device
+            # web server can be unresponsive while the SDS011 samples and
+            # transmits (~25s), so a single timeout is expected, not fatal.
             responseData = None
-            try:
-                _LOGGER.debug("Get data from %s", str(self._resource))
-                async with asyncio.timeout(30):
-                    response = await self._session.get(self._resource)
-                responseData = await response.text()
-                _LOGGER.debug("Received data: %s", responseData)
-            except aiohttp.ClientError as err:
-                _LOGGER.warning("REST request error: {0}".format(err))
-                self.data = None
-                raise LuftdatenError
-            except asyncio.TimeoutError:
-                _LOGGER.warning("REST request timeout")
-                self.data = None
+            last_err = None
+            for attempt in range(REQUEST_RETRIES + 1):
+                try:
+                    _LOGGER.debug("Get data from %s", str(self._resource))
+                    async with asyncio.timeout(REQUEST_TIMEOUT):
+                        response = await self._session.get(self._resource)
+                    responseData = await response.text()
+                    _LOGGER.debug("Received data: %s", responseData)
+                    break
+                except (aiohttp.ClientError, asyncio.TimeoutError) as err:
+                    last_err = err
+                    if attempt < REQUEST_RETRIES:
+                        _LOGGER.debug(
+                            "REST request failed (attempt %d/%d): %s; retrying",
+                            attempt + 1, REQUEST_RETRIES + 1, err,
+                        )
+                        await asyncio.sleep(REQUEST_RETRY_DELAY)
+            else:
+                # All attempts failed. Keep the last known data instead of
+                # clearing it: sensors hold their last readings for up to
+                # STALE_AFTER_INTERVALS, then go unavailable. The next attempt
+                # is gated to one scan_interval from now (lastUpdate above).
+                _LOGGER.warning(
+                    "REST request failed after %d attempts: %s",
+                    REQUEST_RETRIES + 1, last_err,
+                )
                 raise LuftdatenError
 
             # Parse REST response
@@ -241,6 +285,7 @@ class LuftdatenClient(object):
                     return
                 # Set parsed json as data
                 self.data = parsed_json
+                self.lastSuccess = datetime.datetime.now()
             except ValueError:
                 _LOGGER.warning("REST result could not be parsed as JSON")
                 _LOGGER.debug("Erroneous JSON: %s", responseData)
