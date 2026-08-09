@@ -6,14 +6,26 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import (
-    CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
-    CONCENTRATION_PARTS_PER_MILLION,
+    EntityCategory,
     PERCENTAGE,
     UnitOfPressure,
     SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
     UnitOfTemperature,
 )
-from homeassistant.helpers.entity import EntityCategory
+
+try:
+    from homeassistant.const import UnitOfDensity, UnitOfRatio
+
+    UNIT_MICROGRAMS_PER_CUBIC_METER = UnitOfDensity.MICROGRAMS_PER_CUBIC_METER
+    UNIT_PARTS_PER_MILLION = UnitOfRatio.PARTS_PER_MILLION
+except ImportError:
+    # HA < 2026.7 has no UnitOfDensity/UnitOfRatio. The plain constants carry
+    # the same values there and only became deprecated once the enums landed;
+    # drop this branch once HA 2026.7 is the oldest supported release.
+    from homeassistant.const import (
+        CONCENTRATION_MICROGRAMS_PER_CUBIC_METER as UNIT_MICROGRAMS_PER_CUBIC_METER,
+        CONCENTRATION_PARTS_PER_MILLION as UNIT_PARTS_PER_MILLION,
+    )
 
 DOMAIN = "local_luftdaten"
 
@@ -139,14 +151,14 @@ SENSOR_DESCRIPTIONS = {
         device_class=SensorDeviceClass.PM10,
         key=SENSOR_HPM_P1,
         name='PM10',
-        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+        native_unit_of_measurement=UNIT_MICROGRAMS_PER_CUBIC_METER,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SENSOR_HPM_P2: SensorEntityDescription(
         device_class=SensorDeviceClass.PM25,
         key=SENSOR_HPM_P2,
         name='PM2.5',
-        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+        native_unit_of_measurement=UNIT_MICROGRAMS_PER_CUBIC_METER,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SENSOR_HTU21D_HUMIDITY: SensorEntityDescription(
@@ -174,42 +186,42 @@ SENSOR_DESCRIPTIONS = {
         device_class=SensorDeviceClass.PM10,
         key=SENSOR_PM1,
         name='PM10',
-        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+        native_unit_of_measurement=UNIT_MICROGRAMS_PER_CUBIC_METER,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SENSOR_PM2: SensorEntityDescription(
         device_class=SensorDeviceClass.PM25,
         key=SENSOR_PM2,
         name='PM2.5',
-        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+        native_unit_of_measurement=UNIT_MICROGRAMS_PER_CUBIC_METER,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SENSOR_PMS_P0: SensorEntityDescription(
         device_class=SensorDeviceClass.PM1,
         key=SENSOR_PMS_P0,
         name='PM1',
-        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+        native_unit_of_measurement=UNIT_MICROGRAMS_PER_CUBIC_METER,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SENSOR_PMS_P1: SensorEntityDescription(
         device_class=SensorDeviceClass.PM10,
         key=SENSOR_PMS_P1,
         name='PM10',
-        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+        native_unit_of_measurement=UNIT_MICROGRAMS_PER_CUBIC_METER,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SENSOR_PMS_P2: SensorEntityDescription(
         device_class=SensorDeviceClass.PM25,
         key=SENSOR_PMS_P2,
         name='PM2.5',
-        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+        native_unit_of_measurement=UNIT_MICROGRAMS_PER_CUBIC_METER,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SENSOR_SCD30_CO2: SensorEntityDescription(
         device_class=SensorDeviceClass.CO2,
         key=SENSOR_SCD30_CO2,
         name='CO2',
-        native_unit_of_measurement=CONCENTRATION_PARTS_PER_MILLION,
+        native_unit_of_measurement=UNIT_PARTS_PER_MILLION,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SENSOR_SCD30_HUMIDITY: SensorEntityDescription(
@@ -244,56 +256,56 @@ SENSOR_DESCRIPTIONS = {
         device_class=SensorDeviceClass.PM1,
         key=SENSOR_SPS30_P0,
         name='PM1',
-        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+        native_unit_of_measurement=UNIT_MICROGRAMS_PER_CUBIC_METER,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SENSOR_SPS30_P1: SensorEntityDescription(
         device_class=SensorDeviceClass.PM10,
         key=SENSOR_SPS30_P1,
         name='PM10',
-        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+        native_unit_of_measurement=UNIT_MICROGRAMS_PER_CUBIC_METER,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SENSOR_SPS30_P2: SensorEntityDescription(
         device_class=SensorDeviceClass.PM25,
         key=SENSOR_SPS30_P2,
         name='PM2.5',
-        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+        native_unit_of_measurement=UNIT_MICROGRAMS_PER_CUBIC_METER,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SENSOR_SPS30_P4: SensorEntityDescription(
         device_class=SensorDeviceClass.PM25, # SensorDeviceClass.PM4 not supported.
         key=SENSOR_SPS30_P4,
         name='PM4',
-        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+        native_unit_of_measurement=UNIT_MICROGRAMS_PER_CUBIC_METER,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SENSOR_SEN5X_P0: SensorEntityDescription(
         device_class=SensorDeviceClass.PM1,
         key=SENSOR_SEN5X_P0,
         name='PM1',
-        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+        native_unit_of_measurement=UNIT_MICROGRAMS_PER_CUBIC_METER,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SENSOR_SEN5X_P1: SensorEntityDescription(
         device_class=SensorDeviceClass.PM10,
         key=SENSOR_SEN5X_P1,
         name='PM10',
-        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+        native_unit_of_measurement=UNIT_MICROGRAMS_PER_CUBIC_METER,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SENSOR_SEN5X_P2: SensorEntityDescription(
         device_class=SensorDeviceClass.PM25,
         key=SENSOR_SEN5X_P2,
         name='PM2.5',
-        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+        native_unit_of_measurement=UNIT_MICROGRAMS_PER_CUBIC_METER,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SENSOR_SEN5X_P4: SensorEntityDescription(
         device_class=SensorDeviceClass.PM25, # SensorDeviceClass.PM4 not supported.
         key=SENSOR_SEN5X_P4,
         name='PM4',
-        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+        native_unit_of_measurement=UNIT_MICROGRAMS_PER_CUBIC_METER,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SENSOR_SEN5X_NOX: SensorEntityDescription(
