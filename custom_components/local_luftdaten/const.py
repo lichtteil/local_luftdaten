@@ -9,6 +9,7 @@ from homeassistant.const import (
     EntityCategory,
     PERCENTAGE,
     UnitOfPressure,
+    UnitOfSoundPressure,
     SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
     UnitOfTemperature,
 )
@@ -42,6 +43,9 @@ SENSOR_BMP_PRESSURE = 'BMP_pressure'
 SENSOR_BMP_TEMPERATURE = 'BMP_temperature'
 SENSOR_BMP280_PRESSURE = 'BMP280_pressure'
 SENSOR_BMP280_TEMPERATURE = 'BMP280_temperature'
+SENSOR_DNMS_NOISE_LAEQ = 'DNMS_noise_LAeq'
+SENSOR_DNMS_NOISE_LA_MIN = 'DNMS_noise_LA_min'
+SENSOR_DNMS_NOISE_LA_MAX = 'DNMS_noise_LA_max'
 SENSOR_DS18B20_TEMPERATURE = 'DS18B20_temperature'
 SENSOR_HECA_HUMIDITY = 'HECA_humidity'
 SENSOR_HECA_TEMPERATURE = 'HECA_temperature'
@@ -124,6 +128,27 @@ SENSOR_DESCRIPTIONS = {
         name='Pressure',
         native_unit_of_measurement=UnitOfPressure.PA,
         suggested_unit_of_measurement=UnitOfPressure.HPA,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SENSOR_DNMS_NOISE_LAEQ: SensorEntityDescription(
+        device_class=SensorDeviceClass.SOUND_PRESSURE,
+        key=SENSOR_DNMS_NOISE_LAEQ,
+        name='Noise LAeq',
+        native_unit_of_measurement=UnitOfSoundPressure.WEIGHTED_DECIBEL_A,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SENSOR_DNMS_NOISE_LA_MIN: SensorEntityDescription(
+        device_class=SensorDeviceClass.SOUND_PRESSURE,
+        key=SENSOR_DNMS_NOISE_LA_MIN,
+        name='Noise LA min',
+        native_unit_of_measurement=UnitOfSoundPressure.WEIGHTED_DECIBEL_A,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SENSOR_DNMS_NOISE_LA_MAX: SensorEntityDescription(
+        device_class=SensorDeviceClass.SOUND_PRESSURE,
+        key=SENSOR_DNMS_NOISE_LA_MAX,
+        name='Noise LA max',
+        native_unit_of_measurement=UnitOfSoundPressure.WEIGHTED_DECIBEL_A,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SENSOR_DS18B20_TEMPERATURE: SensorEntityDescription(

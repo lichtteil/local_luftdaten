@@ -57,6 +57,9 @@ At the moment following sensor data can be read:
 - BMP_temperature
 - BMP280_pressure
 - BMP280_temperature
+- DNMS_noise_LAeq
+- DNMS_noise_LA_min
+- DNMS_noise_LA_max
 - DS18B20_temperature
 - HECA_humidity
 - HECA_temperature
@@ -89,6 +92,8 @@ At the moment following sensor data can be read:
 - signal
 
 Sensor type `signal` gives the wifi signal strength of the sensor device.
+
+Sensor types `DNMS_noise_*` give the A-weighted sound level of a DNMS noise sensor in dB(A), per measurement interval (equivalent continuous level, minimum and maximum).
 
 Please open an issue if you want to see other attributes and provide me with a sample of your sensor data by calling `http://192.168.x.y/data.json`.
 
