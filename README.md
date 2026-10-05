@@ -70,6 +70,7 @@ At the moment following sensor data can be read:
 - PMS_P0
 - PMS_P1
 - PMS_P2
+- RadSens_radiation_static
 - SCD30_co2_ppm
 - SCD30_humidity
 - SCD30_temperature
@@ -89,6 +90,8 @@ At the moment following sensor data can be read:
 - signal
 
 Sensor type `signal` gives the wifi signal strength of the sensor device.
+
+Sensor type `RadSens_radiation_static` gives the radiation intensity of a ClimateGuard RadSens in µR/h (500 s average).
 
 Please open an issue if you want to see other attributes and provide me with a sample of your sensor data by calling `http://192.168.x.y/data.json`.
 
