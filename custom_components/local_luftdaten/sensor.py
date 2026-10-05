@@ -160,7 +160,7 @@ class LuftdatenSensor(SensorEntity):
         elif self.device_class == SensorDeviceClass.PM10:
             return 'mdi:thought-bubble'
 
-        return None
+        return super().icon
 
     @property
     def suggested_display_precision(self) -> int | None:

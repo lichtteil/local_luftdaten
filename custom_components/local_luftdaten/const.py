@@ -55,6 +55,7 @@ SENSOR_PM2 = 'SDS_P2'
 SENSOR_PMS_P0 = 'PMS_P0'
 SENSOR_PMS_P1 = 'PMS_P1'
 SENSOR_PMS_P2 = 'PMS_P2'
+SENSOR_RADSENS_RADIATION_STATIC = 'RadSens_radiation_static'
 SENSOR_SCD30_CO2 = 'SCD30_co2_ppm'
 SENSOR_SCD30_HUMIDITY = 'SCD30_humidity'
 SENSOR_SCD30_TEMPERATURE = 'SCD30_temperature'
@@ -215,6 +216,14 @@ SENSOR_DESCRIPTIONS = {
         key=SENSOR_PMS_P2,
         name='PM2.5',
         native_unit_of_measurement=UNIT_MICROGRAMS_PER_CUBIC_METER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SENSOR_RADSENS_RADIATION_STATIC: SensorEntityDescription(
+        # No radiation device class in HA; RadSens reports µR/h averaged over 500 s
+        icon='mdi:radioactive',
+        key=SENSOR_RADSENS_RADIATION_STATIC,
+        name='Radiation',
+        native_unit_of_measurement='µR/h',
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SENSOR_SCD30_CO2: SensorEntityDescription(
