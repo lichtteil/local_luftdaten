@@ -1,0 +1,16 @@
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "--strict-markers"
+markers = [
+    "implementation_detail: Pins current implementation; delete or rewrite when refactoring to a coordinator.",
+]
+
+[tool.coverage.run]
+source = ["custom_components/local_luftdaten"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true

@@ -1,0 +1,4 @@
+# Pinned to the PHACC release that tracks the current stable Home Assistant
+# (0.13.367 -> homeassistant==2026.9.4, requires Python >= 3.14).
+pytest-homeassistant-custom-component==0.13.367
+# freezegun and pytest-cov come in transitively via PHACC (exact pins there).
