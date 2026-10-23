@@ -1,4 +1,10 @@
-"""Characterization tests for LuftdatenClient (fetch gating, retries, parsing)."""
+"""Characterization tests for LuftdatenClient (fetch gating, retries, parsing).
+
+Every test here pins LuftdatenClient internals (throttling, the 5 s lastUpdate
+correction, retry counts, freshness bookkeeping) and is marked
+implementation_detail. The user-visible effects are covered by the unmarked
+tests in test_sensor.py.
+"""
 
 from __future__ import annotations
 
@@ -19,6 +25,8 @@ from custom_components.local_luftdaten.sensor import (
 )
 
 from .conftest import load_fixture_json, load_fixture_text
+
+pytestmark = pytest.mark.implementation_detail
 
 RESOURCE = "http://192.168.0.123/data.json"
 SCAN_INTERVAL = timedelta(seconds=180)
@@ -75,7 +83,10 @@ def make_client(session: FakeSession) -> LuftdatenClient:
 
 
 async def test_initial_state() -> None:
-    """A fresh client has no data and is not fresh."""
+    """Pins current implementation; delete or rewrite when refactoring to a coordinator.
+
+    A fresh client has no data and is not fresh.
+    """
     client = make_client(FakeSession())
     assert client.data is None
     assert client.lastSuccess is None
@@ -83,7 +94,10 @@ async def test_initial_state() -> None:
 
 
 async def test_first_call_fetches_immediately(freezer: FrozenDateTimeFactory) -> None:
-    """The first update fetches without waiting for scan_interval."""
+    """Pins current implementation; delete or rewrite when refactoring to a coordinator.
+
+    The first update fetches without waiting for scan_interval.
+    """
     session = FakeSession(VALID)
     client = make_client(session)
 
@@ -97,7 +111,10 @@ async def test_first_call_fetches_immediately(freezer: FrozenDateTimeFactory) ->
 async def test_second_call_within_interval_does_not_fetch(
     freezer: FrozenDateTimeFactory,
 ) -> None:
-    """A call inside scan_interval returns without a request."""
+    """Pins current implementation; delete or rewrite when refactoring to a coordinator.
+
+    A call inside scan_interval returns without a request.
+    """
     session = FakeSession(VALID)
     client = make_client(session)
     await client.async_update()
@@ -111,7 +128,9 @@ async def test_second_call_within_interval_does_not_fetch(
 async def test_refetch_after_interval_with_5s_correction(
     freezer: FrozenDateTimeFactory,
 ) -> None:
-    """lastUpdate is stored 5 s in the past, so the next fetch is due after
+    """Pins current implementation; delete or rewrite when refactoring to a coordinator.
+
+    lastUpdate is stored 5 s in the past, so the next fetch is due after
     scan_interval - 5 s, not after the full scan_interval."""
     session = FakeSession(VALID, VALID)
     client = make_client(session)
@@ -129,7 +148,10 @@ async def test_refetch_after_interval_with_5s_correction(
 async def test_single_timeout_then_success(
     freezer: FrozenDateTimeFactory, mock_sleep: AsyncMock
 ) -> None:
-    """One timeout is retried after REQUEST_RETRY_DELAY and then succeeds."""
+    """Pins current implementation; delete or rewrite when refactoring to a coordinator.
+
+    One timeout is retried after REQUEST_RETRY_DELAY and then succeeds.
+    """
     session = FakeSession(asyncio.TimeoutError(), VALID)
     client = make_client(session)
 
@@ -143,7 +165,9 @@ async def test_single_timeout_then_success(
 async def test_all_attempts_fail_keeps_old_data(
     freezer: FrozenDateTimeFactory, mock_sleep: AsyncMock
 ) -> None:
-    """After 1 + REQUEST_RETRIES failures LuftdatenError is raised, previous
+    """Pins current implementation; delete or rewrite when refactoring to a coordinator.
+
+    After 1 + REQUEST_RETRIES failures LuftdatenError is raised, previous
     data is kept, and the next attempt waits a full scan_interval."""
     session = FakeSession(VALID)
     client = make_client(session)
@@ -184,7 +208,10 @@ async def test_all_attempts_fail_keeps_old_data(
 
 
 async def test_unexpected_exception_propagates(freezer: FrozenDateTimeFactory) -> None:
-    """Only aiohttp.ClientError and TimeoutError are retried."""
+    """Pins current implementation; delete or rewrite when refactoring to a coordinator.
+
+    Only aiohttp.ClientError and TimeoutError are retried.
+    """
     session = FakeSession(ValueError("unexpected"))
     client = make_client(session)
 
@@ -198,7 +225,10 @@ async def test_unexpected_exception_propagates(freezer: FrozenDateTimeFactory) -
 async def test_invalid_or_non_dict_json_clears_data(
     freezer: FrozenDateTimeFactory, payload: str
 ) -> None:
-    """Unparseable or non-object JSON sets data=None without raising."""
+    """Pins current implementation; delete or rewrite when refactoring to a coordinator.
+
+    Unparseable or non-object JSON sets data=None without raising.
+    """
     session = FakeSession(VALID, payload)
     client = make_client(session)
     await client.async_update()
@@ -219,7 +249,10 @@ async def test_invalid_or_non_dict_json_clears_data(
 async def test_dict_without_sensordatavalues_is_accepted(
     freezer: FrozenDateTimeFactory,
 ) -> None:
-    """Any JSON object counts as success; the shape is not validated."""
+    """Pins current implementation; delete or rewrite when refactoring to a coordinator.
+
+    Any JSON object counts as success; the shape is not validated.
+    """
     # Characterization: current behavior, possibly unintended
     session = FakeSession("{}")
     client = make_client(session)
@@ -231,7 +264,10 @@ async def test_dict_without_sensordatavalues_is_accepted(
 
 
 async def test_is_data_fresh_boundary(freezer: FrozenDateTimeFactory) -> None:
-    """Data is fresh while younger than STALE_AFTER_INTERVALS * scan_interval."""
+    """Pins current implementation; delete or rewrite when refactoring to a coordinator.
+
+    Data is fresh while younger than STALE_AFTER_INTERVALS * scan_interval.
+    """
     assert STALE_AFTER_INTERVALS == 3
     session = FakeSession(VALID)
     client = make_client(session)
@@ -245,7 +281,10 @@ async def test_is_data_fresh_boundary(freezer: FrozenDateTimeFactory) -> None:
 
 
 async def test_parallel_calls_make_one_request(freezer: FrozenDateTimeFactory) -> None:
-    """Concurrent updates are serialized by the lock; only one fetches."""
+    """Pins current implementation; delete or rewrite when refactoring to a coordinator.
+
+    Concurrent updates are serialized by the lock; only one fetches.
+    """
     session = FakeSession(VALID)
     session.gate = asyncio.Event()
     client = make_client(session)

@@ -93,6 +93,7 @@ class _StubClient:
         return None
 
 
+@pytest.mark.implementation_detail
 @pytest.mark.parametrize(
     ("filename", "value_type"),
     [case for case in _value_type_cases() if case[1] in SENSOR_DESCRIPTIONS],
@@ -100,7 +101,12 @@ class _StubClient:
 async def test_supported_value_is_read_as_raw_string(
     filename: str, value_type: str
 ) -> None:
-    """A supported value_type ends up in native_value unchanged (as a string)."""
+    """Pins current implementation; delete or rewrite when refactoring to a coordinator.
+
+    Drives LuftdatenSensor directly with a stub client: a supported value_type
+    ends up in native_value unchanged (as a string). The observable state is
+    covered by test_sensor.py::test_state_strings.
+    """
     data = load_fixture_json(filename)
     expected = next(
         item["value"]

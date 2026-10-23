@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -88,13 +89,19 @@ async def test_user_step_does_not_check_connectivity(
 ) -> None:
     # Characterization: current behavior, possibly unintended
     # An unreachable or misspelled host is accepted without any request.
+    # Entry setup is patched out so only requests made by the flow itself
+    # count (a coordinator may legitimately fetch during setup).
     aioclient_mock.clear_requests()
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": config_entries.SOURCE_USER}
-    )
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {**USER_INPUT, "host": "does-not-exist.invalid"}
-    )
+    with patch(
+        "custom_components.local_luftdaten.async_setup_entry", return_value=True
+    ):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": config_entries.SOURCE_USER}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {**USER_INPUT, "host": "does-not-exist.invalid"}
+        )
+        await hass.async_block_till_done()
 
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert aioclient_mock.call_count == 0

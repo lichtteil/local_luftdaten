@@ -1,4 +1,10 @@
-"""Characterization tests for the sensor platform running inside Home Assistant."""
+"""Characterization tests for the sensor platform running inside Home Assistant.
+
+Unmarked tests assert observable behavior only (states, attributes, registry
+entries, and request cadence within tolerances, see tests/timing.py) and must
+survive a refactor to a DataUpdateCoordinator. Tests marked
+implementation_detail pin today's scheduling exactly.
+"""
 
 from __future__ import annotations
 
@@ -10,10 +16,7 @@ from unittest.mock import patch
 import aiohttp
 from freezegun.api import FrozenDateTimeFactory
 import pytest
-from pytest_homeassistant_custom_component.common import (
-    MockConfigEntry,
-    async_fire_time_changed,
-)
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 from pytest_homeassistant_custom_component.test_util.aiohttp import (
     AiohttpClientMocker,
 )
@@ -29,18 +32,26 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.util import dt as dt_util
 
 from custom_components.local_luftdaten.const import DOMAIN
 
 from .conftest import load_fixture_json, load_fixture_text
+from .timing import (
+    FIRST_FETCH_WITHIN,
+    HA_POLL,
+    LATE_TOLERANCE,
+    FakeDevice,
+    advance,
+    advance_to,
+    assert_fetch_cadence,
+)
 
 HOST = "192.168.0.123"
 URL = f"http://{HOST}/data.json"
 NAME = "Feinstaub"
-# HA's default polling interval for sensor entities. The integration does not
-# set SCAN_INTERVAL on the platform, so entities poll every 30 s and the
-# client gates actual requests to the configured scan_interval.
-HA_POLL = timedelta(seconds=30)
+SCAN_INTERVAL = timedelta(seconds=180)
+RADSENS = load_fixture_text("radsens_issue45.json")
 
 BASE_DATA: dict[str, Any] = {
     "host": HOST,
@@ -55,7 +66,7 @@ BASE_DATA: dict[str, Any] = {
         "BME280_pressure",
         "signal",
     ],
-    "scan_interval": 180,
+    "scan_interval": int(SCAN_INTERVAL.total_seconds()),
 }
 
 # Entity ids derived from "{name} {description.name}".
@@ -74,6 +85,14 @@ def no_retry_delay():
     """Skip the 3 s pause between request retries."""
     with patch("custom_components.local_luftdaten.sensor.REQUEST_RETRY_DELAY", 0):
         yield
+
+
+@pytest.fixture
+def device(aioclient_mock: AiohttpClientMocker) -> FakeDevice:
+    """The sensor at HOST, answering with the RadSens sample by default."""
+    fake = FakeDevice(aioclient_mock, URL)
+    fake.respond(text=RADSENS)
+    return fake
 
 
 async def setup_entry(
@@ -95,46 +114,36 @@ async def setup_entry(
     return entry
 
 
-async def poll(hass: HomeAssistant, freezer: FrozenDateTimeFactory, times: int = 1):
-    """Advance time by `times` HA polling intervals."""
-    for _ in range(times):
-        freezer.tick(HA_POLL)
-        async_fire_time_changed(hass)
-        # Entity polling runs as a background task.
-        await hass.async_block_till_done(wait_background_tasks=True)
+async def setup_with_data(
+    hass: HomeAssistant, freezer: FrozenDateTimeFactory, **kwargs: Any
+) -> MockConfigEntry:
+    """Set up the entry and wait until the first fetch is reflected."""
+    entry = await setup_entry(hass, **kwargs)
+    await advance(hass, freezer, FIRST_FETCH_WITHIN)
+    return entry
 
 
-def respond(aioclient_mock: AiohttpClientMocker, **kwargs: Any) -> None:
-    aioclient_mock.clear_requests()
-    aioclient_mock.get(URL, **kwargs)
+def state(hass: HomeAssistant, key: str) -> str:
+    return hass.states.get(ENTITY_IDS[key]).state
 
 
-async def test_entities_unavailable_until_first_poll(
-    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, freezer
+async def test_values_present_shortly_after_setup(
+    hass: HomeAssistant, device: FakeDevice, freezer
 ) -> None:
-    """Entities are added without an initial update."""
-    respond(aioclient_mock, text=load_fixture_text("radsens_issue45.json"))
-    await setup_entry(hass)
+    """Within one HA poll after setup the device was read and values show."""
+    start = dt_util.utcnow()
+    await setup_with_data(hass, freezer)
 
-    # Characterization: current behavior, possibly unintended
-    # async_add_entities(..., False): no request during setup, so every
-    # entity is unavailable for the first 30 s.
-    assert aioclient_mock.call_count == 0
-    for entity_id in ENTITY_IDS.values():
-        assert hass.states.get(entity_id).state == STATE_UNAVAILABLE
-
-    await poll(hass, freezer)
-    assert aioclient_mock.call_count == 1
-    assert hass.states.get(ENTITY_IDS["SDS_P1"]).state == "20.17"
+    assert len(device.rounds()) == 1
+    assert device.rounds()[0][0] - start <= FIRST_FETCH_WITHIN
+    assert state(hass, "SDS_P1") == "20.17"
 
 
 async def test_setup_creates_entity_per_condition(
-    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, freezer
+    hass: HomeAssistant, device: FakeDevice, freezer
 ) -> None:
     """One entity per monitored condition with name, unit and device class."""
-    respond(aioclient_mock, text=load_fixture_text("radsens_issue45.json"))
-    entry = await setup_entry(hass)
-    await poll(hass, freezer)
+    entry = await setup_with_data(hass, freezer)
 
     expected = {
         "SDS_P1": ("Feinstaub PM10", "μg/m³", "pm10"),
@@ -149,44 +158,38 @@ async def test_setup_creates_entity_per_condition(
     assert {e.entity_id for e in entries} == set(ENTITY_IDS.values())
 
     for key, (friendly_name, unit, device_class) in expected.items():
-        state = hass.states.get(ENTITY_IDS[key])
-        assert state.attributes[ATTR_FRIENDLY_NAME] == friendly_name
-        assert state.attributes[ATTR_UNIT_OF_MEASUREMENT] == unit
-        assert state.attributes[ATTR_DEVICE_CLASS] == device_class
-        assert state.attributes["state_class"] == "measurement"
+        st = hass.states.get(ENTITY_IDS[key])
+        assert st.attributes[ATTR_FRIENDLY_NAME] == friendly_name
+        assert st.attributes[ATTR_UNIT_OF_MEASUREMENT] == unit
+        assert st.attributes[ATTR_DEVICE_CLASS] == device_class
+        assert st.attributes["state_class"] == "measurement"
 
     signal = entity_registry.async_get(ENTITY_IDS["signal"])
     assert signal.entity_category == er.EntityCategory.DIAGNOSTIC
 
 
-async def test_state_strings(
-    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, freezer
-) -> None:
+async def test_state_strings(hass: HomeAssistant, device: FakeDevice, freezer) -> None:
     """Raw string values from data.json become the state unchanged."""
-    respond(aioclient_mock, text=load_fixture_text("radsens_issue45.json"))
-    await setup_entry(hass)
-    await poll(hass, freezer)
+    await setup_with_data(hass, freezer)
 
-    assert hass.states.get(ENTITY_IDS["SDS_P1"]).state == "20.17"
-    assert hass.states.get(ENTITY_IDS["SDS_P2"]).state == "9.93"
-    assert hass.states.get(ENTITY_IDS["BME280_temperature"]).state == "-7.99"
-    assert hass.states.get(ENTITY_IDS["BME280_humidity"]).state == "78.89"
-    assert hass.states.get(ENTITY_IDS["signal"]).state == "-86"
+    assert state(hass, "SDS_P1") == "20.17"
+    assert state(hass, "SDS_P2") == "9.93"
+    assert state(hass, "BME280_temperature") == "-7.99"
+    assert state(hass, "BME280_humidity") == "78.89"
+    assert state(hass, "signal") == "-86"
 
 
 async def test_pressure_shown_in_hpa(
-    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, freezer
+    hass: HomeAssistant, device: FakeDevice, freezer
 ) -> None:
     """Pressure arrives in Pa and is converted to hPa via the suggested unit."""
-    respond(aioclient_mock, text=load_fixture_text("radsens_issue45.json"))
-    await setup_entry(hass)
-    await poll(hass, freezer)
+    await setup_with_data(hass, freezer)
 
-    state = hass.states.get(ENTITY_IDS["BME280_pressure"])
-    assert state.attributes[ATTR_UNIT_OF_MEASUREMENT] == "hPa"
+    st = hass.states.get(ENTITY_IDS["BME280_pressure"])
+    assert st.attributes[ATTR_UNIT_OF_MEASUREMENT] == "hPa"
     # 99043.78 Pa -> hPa; the state keeps full precision, rounding to the
     # suggested 1 decimal happens only in the frontend.
-    assert state.state == "990.4378"
+    assert st.state == "990.4378"
 
     reg_entry = er.async_get(hass).async_get(ENTITY_IDS["BME280_pressure"])
     assert reg_entry.options["sensor.private"]["suggested_unit_of_measurement"] == "hPa"
@@ -194,12 +197,10 @@ async def test_pressure_shown_in_hpa(
 
 
 async def test_display_precision(
-    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, freezer
+    hass: HomeAssistant, device: FakeDevice, freezer
 ) -> None:
     """1 decimal is suggested for PM/temperature/humidity/pressure, not signal."""
-    respond(aioclient_mock, text=load_fixture_text("radsens_issue45.json"))
-    await setup_entry(hass)
-    await poll(hass, freezer)
+    await setup_with_data(hass, freezer)
 
     registry = er.async_get(hass)
     for key, entity_id in ENTITY_IDS.items():
@@ -210,11 +211,9 @@ async def test_display_precision(
             assert options["sensor"]["suggested_display_precision"] == 1
 
 
-async def test_pm_icons(
-    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, freezer
-) -> None:
+async def test_pm_icons(hass: HomeAssistant, device: FakeDevice, freezer) -> None:
     """PM10 and PM1/PM2.5/PM4 get distinct icons, others none."""
-    respond(aioclient_mock, text=load_fixture_text("sps30_issue80.json"))
+    device.respond(text=load_fixture_text("sps30_issue80.json"))
     data = {
         **BASE_DATA,
         "monitored_conditions": [
@@ -225,8 +224,7 @@ async def test_pm_icons(
             "signal",
         ],
     }
-    await setup_entry(hass, data)
-    await poll(hass, freezer)
+    await setup_with_data(hass, freezer, data=data)
 
     def icon(entity_id: str) -> str | None:
         return hass.states.get(entity_id).attributes.get(ATTR_ICON)
@@ -241,11 +239,8 @@ async def test_pm_icons(
     assert icon("sensor.feinstaub_wifi_signal") is None
 
 
-async def test_unique_id_format(
-    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
-) -> None:
+async def test_unique_id_format(hass: HomeAssistant, device: FakeDevice) -> None:
     """unique_id is '{name}-{key}' (based on the name, not the host)."""
-    respond(aioclient_mock, text=load_fixture_text("radsens_issue45.json"))
     entry = await setup_entry(hass)
 
     registry = er.async_get(hass)
@@ -260,10 +255,10 @@ async def test_unique_id_format(
 
 
 async def test_same_name_on_two_hosts_collides(
-    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+    hass: HomeAssistant, device: FakeDevice, aioclient_mock: AiohttpClientMocker
 ) -> None:
     """Two devices with the same name produce the same unique_ids."""
-    respond(aioclient_mock, text=load_fixture_text("radsens_issue45.json"))
+    aioclient_mock.get("http://192.168.0.200/data.json", text=RADSENS)
     first = await setup_entry(hass)
     second = await setup_entry(
         hass, {**BASE_DATA, "host": "192.168.0.200"}, unique_id="192.168.0.200"
@@ -278,13 +273,11 @@ async def test_same_name_on_two_hosts_collides(
 
 
 async def test_duplicate_description_names_get_suffixed_entity_ids(
-    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, freezer
+    hass: HomeAssistant, device: FakeDevice, freezer
 ) -> None:
     """Keys sharing a description name end up as name, name_2, ..."""
-    respond(aioclient_mock, text=load_fixture_text("radsens_issue45.json"))
     data = {**BASE_DATA, "monitored_conditions": ["BME280_temperature", "temperature"]}
-    await setup_entry(hass, data)
-    await poll(hass, freezer)
+    await setup_with_data(hass, freezer, data=data)
 
     registry = er.async_get(hass)
     # Characterization: current behavior, possibly unintended
@@ -300,151 +293,147 @@ async def test_duplicate_description_names_get_suffixed_entity_ids(
 
 
 async def test_all_entities_on_one_device(
-    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+    hass: HomeAssistant, device: FakeDevice
 ) -> None:
     """All entities hang off a single device identified by the host."""
-    respond(aioclient_mock, text=load_fixture_text("radsens_issue45.json"))
     entry = await setup_entry(hass)
 
     devices = dr.async_entries_for_config_entry(dr.async_get(hass), entry.entry_id)
     assert len(devices) == 1
-    device = devices[0]
-    assert device.identifiers == {(DOMAIN, HOST)}
-    assert device.name == NAME
-    assert device.manufacturer == "Luftdaten"
-    assert device.model == "Local Sensor"
+    dev = devices[0]
+    assert dev.identifiers == {(DOMAIN, HOST)}
+    assert dev.name == NAME
+    assert dev.manufacturer == "Luftdaten"
+    assert dev.model == "Local Sensor"
 
     entities = er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)
     assert len(entities) == 6
-    assert {e.device_id for e in entities} == {device.id}
+    assert {e.device_id for e in entities} == {dev.id}
 
 
-async def test_one_request_per_scan_interval_for_all_entities(
-    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, freezer
+@pytest.mark.parametrize("scan_seconds", [60, 100, 180])
+async def test_fetch_cadence_follows_scan_interval(
+    hass: HomeAssistant, device: FakeDevice, freezer, scan_seconds: int
 ) -> None:
-    """Six entities share one client; HA polls every 30 s, the device is hit
-    once per scan_interval (minus the 5 s correction)."""
-    respond(aioclient_mock, text=load_fixture_text("radsens_issue45.json"))
-    await setup_entry(hass)
+    """All entities share one request per fetch; at most one fetch per
+    scan_interval and a new one at the latest after scan_interval."""
+    scan_interval = timedelta(seconds=scan_seconds)
+    start = dt_util.utcnow()
+    await setup_entry(hass, {**BASE_DATA, "scan_interval": scan_seconds})
 
-    await poll(hass, freezer)  # t=30: first fetch
-    assert aioclient_mock.call_count == 1
+    await advance(hass, freezer, scan_interval * 10)
 
-    await poll(hass, freezer, 5)  # t=180: 155 s since lastUpdate (t=25)
-    assert aioclient_mock.call_count == 1
-
-    await poll(hass, freezer)  # t=210: >= 180 s since t=25
-    assert aioclient_mock.call_count == 2
+    rounds = device.rounds()
+    assert all(len(r) == 1 for r in rounds), "one request per fetch for 6 entities"
+    assert_fetch_cadence(rounds, start, dt_util.utcnow(), scan_interval)
 
 
 async def test_unreachable_holds_values_then_unavailable(
-    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, freezer
+    hass: HomeAssistant, device: FakeDevice, freezer
 ) -> None:
-    """Values are kept while the device is down, unavailable after 3 intervals."""
-    respond(aioclient_mock, text=load_fixture_text("radsens_issue45.json"))
-    await setup_entry(hass)
-    await poll(hass, freezer)  # t=30: success, lastSuccess = t30
-    assert hass.states.get(ENTITY_IDS["SDS_P1"]).state == "20.17"
+    """Values are kept while the device is down; unavailable once the last
+    success is 3 scan_intervals old; recovery on the next fetch."""
+    start = dt_util.utcnow()
+    await setup_with_data(hass, freezer)
+    last_success = device.rounds()[0][0]
+    device.respond(exc=aiohttp.ClientError("unreachable"))
 
-    respond(aioclient_mock, exc=aiohttp.ClientError("unreachable"))
+    # 1 scan_interval without success: old values, available.
+    await advance_to(hass, freezer, last_success + SCAN_INTERVAL + LATE_TOLERANCE)
+    assert len(device.rounds(since=last_success)) >= 2, "failed fetch was attempted"
+    assert all(state(hass, key) != STATE_UNAVAILABLE for key in ENTITY_IDS)
+    assert state(hass, "SDS_P1") == "20.17"
 
-    await poll(hass, freezer, 6)  # t=210: first failed fetch (3 attempts)
-    assert aioclient_mock.call_count == 3
-    assert hass.states.get(ENTITY_IDS["SDS_P1"]).state == "20.17"
+    # Just before 3 scan_intervals: still the old values.
+    await advance_to(hass, freezer, last_success + SCAN_INTERVAL * 3 - timedelta(seconds=1))
+    assert state(hass, "SDS_P1") == "20.17"
 
-    await poll(hass, freezer, 6)  # t=390: second failed fetch
-    assert aioclient_mock.call_count == 6
-    assert hass.states.get(ENTITY_IDS["SDS_P1"]).state == "20.17"
+    # 3 scan_intervals without success: unavailable.
+    await advance_to(hass, freezer, last_success + SCAN_INTERVAL * 3 + LATE_TOLERANCE)
+    assert all(state(hass, key) == STATE_UNAVAILABLE for key in ENTITY_IDS)
 
-    await poll(hass, freezer, 5)  # t=540: age 510 s < 540 s
-    assert hass.states.get(ENTITY_IDS["SDS_P1"]).state == "20.17"
+    # 4 scan_intervals: still unavailable, still retrying at the normal pace.
+    await advance_to(hass, freezer, last_success + SCAN_INTERVAL * 4 + LATE_TOLERANCE)
+    assert all(state(hass, key) == STATE_UNAVAILABLE for key in ENTITY_IDS)
+    assert_fetch_cadence(device.rounds(), start, dt_util.utcnow(), SCAN_INTERVAL)
 
-    await poll(hass, freezer)  # t=570: age 540 s, third failed fetch
-    assert aioclient_mock.call_count == 9
-    for entity_id in ENTITY_IDS.values():
-        assert hass.states.get(entity_id).state == STATE_UNAVAILABLE
-
-    # Recovery on the next due fetch.
-    respond(aioclient_mock, text=load_fixture_text("radsens_issue45.json"))
-    await poll(hass, freezer, 6)  # t=750
-    assert aioclient_mock.call_count == 1
-    assert hass.states.get(ENTITY_IDS["SDS_P1"]).state == "20.17"
+    # Device back: values return within one scan_interval.
+    device.respond(text=RADSENS)
+    await advance(hass, freezer, SCAN_INTERVAL + LATE_TOLERANCE)
+    assert state(hass, "SDS_P1") == "20.17"
+    assert all(state(hass, key) != STATE_UNAVAILABLE for key in ENTITY_IDS)
 
 
 async def test_missing_value_type_keeps_old_value(
-    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, freezer
+    hass: HomeAssistant, device: FakeDevice, freezer
 ) -> None:
     """A value_type missing from a later response keeps its previous value."""
-    respond(aioclient_mock, text=load_fixture_text("radsens_issue45.json"))
-    await setup_entry(hass)
-    await poll(hass, freezer)
+    await setup_with_data(hass, freezer)
 
     data = load_fixture_json("radsens_issue45.json")
     values = [v for v in data["sensordatavalues"] if v["value_type"] != "SDS_P1"]
     for v in values:
         if v["value_type"] == "SDS_P2":
             v["value"] = "1.11"
-    respond(aioclient_mock, text=json.dumps({**data, "sensordatavalues": values}))
-    await poll(hass, freezer, 6)
-    assert aioclient_mock.call_count == 1
+    device.respond(text=json.dumps({**data, "sensordatavalues": values}))
+    await advance(hass, freezer, SCAN_INTERVAL + LATE_TOLERANCE)
+    assert len(device.rounds()) >= 2
 
     # Characterization: current behavior, possibly unintended
     # SDS_P1 keeps the old reading and stays available indefinitely.
-    assert hass.states.get(ENTITY_IDS["SDS_P1"]).state == "20.17"
-    assert hass.states.get(ENTITY_IDS["SDS_P2"]).state == "1.11"
+    assert state(hass, "SDS_P1") == "20.17"
+    assert state(hass, "SDS_P2") == "1.11"
 
-    await poll(hass, freezer, 30)
-    assert hass.states.get(ENTITY_IDS["SDS_P1"]).state == "20.17"
+    await advance(hass, freezer, SCAN_INTERVAL * 5)
+    assert state(hass, "SDS_P1") == "20.17"
 
 
-async def test_invalid_json_makes_entities_unavailable_immediately(
-    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, freezer
+@pytest.mark.parametrize("payload", ["<html>busy</html>", "[1, 2, 3]"])
+async def test_invalid_json_makes_entities_unavailable(
+    hass: HomeAssistant, device: FakeDevice, freezer, payload: str
 ) -> None:
-    """An unparseable body discards data; entities go unavailable at once."""
-    respond(aioclient_mock, text=load_fixture_text("radsens_issue45.json"))
-    await setup_entry(hass)
-    await poll(hass, freezer)
+    """An unparseable or non-object body discards data; entities go
+    unavailable on the next fetch instead of after 3 scan_intervals."""
+    await setup_with_data(hass, freezer)
 
-    respond(aioclient_mock, text="<html>busy</html>")
-    await poll(hass, freezer, 6)
+    device.respond(text=payload)
+    await advance(hass, freezer, SCAN_INTERVAL + LATE_TOLERANCE)
 
     # Characterization: current behavior, possibly unintended
     # Contrast with network errors, which keep values for 3 intervals.
-    assert aioclient_mock.call_count == 1
-    assert hass.states.get(ENTITY_IDS["SDS_P1"]).state == STATE_UNAVAILABLE
+    assert len(device.rounds()) >= 2
+    assert state(hass, "SDS_P1") == STATE_UNAVAILABLE
 
 
 async def test_object_without_sensordatavalues_keeps_entities_available(
     hass: HomeAssistant,
-    aioclient_mock: AiohttpClientMocker,
+    device: FakeDevice,
     freezer,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """'{}' counts as a successful fetch, then the entity update raises."""
-    respond(aioclient_mock, text=load_fixture_text("radsens_issue45.json"))
-    await setup_entry(hass)
-    await poll(hass, freezer)
+    """'{}' counts as a successful fetch, then reading the values fails."""
+    await setup_with_data(hass, freezer)
 
-    respond(aioclient_mock, text="{}")
-    await poll(hass, freezer, 6)
+    device.respond(text="{}")
+    await advance(hass, freezer, SCAN_INTERVAL + LATE_TOLERANCE)
 
     # Characterization: current behavior, possibly unintended
-    # KeyError('sensordatavalues') escapes async_update and is logged by HA;
-    # the old value stays and, since lastSuccess was refreshed, the entity
-    # stays available.
+    # KeyError('sensordatavalues') is logged; the old value stays and, since
+    # the fetch counted as success, the entity stays available.
     assert "sensordatavalues" in caplog.text
-    assert hass.states.get(ENTITY_IDS["SDS_P1"]).state == "20.17"
+    assert state(hass, "SDS_P1") == "20.17"
 
-    await poll(hass, freezer, 30)
-    assert hass.states.get(ENTITY_IDS["SDS_P1"]).state == "20.17"
+    await advance(hass, freezer, SCAN_INTERVAL * 5)
+    assert state(hass, "SDS_P1") == "20.17"
 
 
 async def test_options_override_data(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, freezer
 ) -> None:
     """Values in entry.options take precedence over entry.data."""
-    other_url = "http://10.0.0.5/data.json"
-    aioclient_mock.get(other_url, text=load_fixture_text("radsens_issue45.json"))
+    other = FakeDevice(aioclient_mock, "http://10.0.0.5/data.json")
+    other.respond(text=RADSENS)
+    start = dt_util.utcnow()
     entry = await setup_entry(
         hass,
         options={
@@ -460,25 +449,22 @@ async def test_options_override_data(
     assert [e.unique_id for e in entities] == ["Balkon-SDS_P2"]
     assert entities[0].entity_id == "sensor.balkon_pm2_5"
 
-    await poll(hass, freezer)
-    assert aioclient_mock.mock_calls[0][1].human_repr() == other_url
+    await advance(hass, freezer, timedelta(seconds=60) * 5)
     assert hass.states.get("sensor.balkon_pm2_5").state == "9.93"
+    # Only the options host is queried, at the options scan_interval.
+    assert all(str(call[1]) == other.url for call in aioclient_mock.mock_calls)
+    assert_fetch_cadence(
+        other.rounds(), start, dt_util.utcnow(), timedelta(seconds=60)
+    )
 
-    await poll(hass, freezer, 2)  # t=90: 65 s since lastUpdate (t=25)
-    assert aioclient_mock.call_count == 2
-
-    [device] = dr.async_entries_for_config_entry(dr.async_get(hass), entry.entry_id)
-    assert device.identifiers == {(DOMAIN, "10.0.0.5")}
-    assert device.name == "Balkon"
+    [dev] = dr.async_entries_for_config_entry(dr.async_get(hass), entry.entry_id)
+    assert dev.identifiers == {(DOMAIN, "10.0.0.5")}
+    assert dev.name == "Balkon"
 
 
-async def test_unload_entry(
-    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, freezer
-) -> None:
-    """Unloading stops polling and leaves the entities unavailable."""
-    respond(aioclient_mock, text=load_fixture_text("radsens_issue45.json"))
-    entry = await setup_entry(hass)
-    await poll(hass, freezer)
+async def test_unload_entry(hass: HomeAssistant, device: FakeDevice, freezer) -> None:
+    """Unloading stops fetching and leaves the entities unavailable."""
+    entry = await setup_with_data(hass, freezer)
     assert entry.state is ConfigEntryState.LOADED
 
     assert await hass.config_entries.async_unload(entry.entry_id)
@@ -488,5 +474,98 @@ async def test_unload_entry(
     for entity_id in ENTITY_IDS.values():
         assert hass.states.get(entity_id).state == STATE_UNAVAILABLE
 
-    await poll(hass, freezer, 10)
+    requests_at_unload = len(device.request_times)
+    await advance(hass, freezer, SCAN_INTERVAL * 3)
+    assert len(device.request_times) == requests_at_unload
+
+
+# --- Implementation details -------------------------------------------------
+# Exact request counts on HA's 30 s entity-polling grid and the client's 5 s
+# lastUpdate correction. A coordinator fetches on its own schedule, so these
+# are expected to break.
+
+
+async def poll(hass: HomeAssistant, freezer: FrozenDateTimeFactory, times: int = 1):
+    """Advance time by `times` HA entity-polling intervals."""
+    await advance(hass, freezer, HA_POLL * times)
+
+
+def respond(aioclient_mock: AiohttpClientMocker, **kwargs: Any) -> None:
+    aioclient_mock.clear_requests()
+    aioclient_mock.get(URL, **kwargs)
+
+
+@pytest.mark.implementation_detail
+async def test_impl_entities_unavailable_until_first_entity_poll(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, freezer
+) -> None:
+    """Pins current implementation; delete or rewrite when refactoring to a coordinator.
+
+    Entities are added without an initial update.
+    """
+    respond(aioclient_mock, text=RADSENS)
+    await setup_entry(hass)
+
+    # Characterization: current behavior, possibly unintended
+    # async_add_entities(..., False): no request during setup, so every
+    # entity is unavailable until the first entity poll 30 s later.
+    assert aioclient_mock.call_count == 0
+    for entity_id in ENTITY_IDS.values():
+        assert hass.states.get(entity_id).state == STATE_UNAVAILABLE
+
+    await poll(hass, freezer)
     assert aioclient_mock.call_count == 1
+    assert state(hass, "SDS_P1") == "20.17"
+
+
+@pytest.mark.implementation_detail
+async def test_impl_request_counts_on_30s_poll_grid(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, freezer
+) -> None:
+    """Pins current implementation; delete or rewrite when refactoring to a coordinator.
+
+    HA polls every 30 s; the client fetches once lastUpdate (fetch time - 5 s)
+    is a scan_interval old.
+    """
+    respond(aioclient_mock, text=RADSENS)
+    await setup_entry(hass)
+
+    await poll(hass, freezer)  # t=30: first fetch
+    assert aioclient_mock.call_count == 1
+
+    await poll(hass, freezer, 5)  # t=180: 155 s since lastUpdate (t=25)
+    assert aioclient_mock.call_count == 1
+
+    await poll(hass, freezer)  # t=210: >= 180 s since t=25
+    assert aioclient_mock.call_count == 2
+
+
+@pytest.mark.implementation_detail
+async def test_impl_unreachable_request_counts(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, freezer
+) -> None:
+    """Pins current implementation; delete or rewrite when refactoring to a coordinator.
+
+    Exact timeline: success at t=30, failed fetches (3 attempts each) at
+    t=210/390/570, unavailable from the poll at t=570.
+    """
+    respond(aioclient_mock, text=RADSENS)
+    await setup_entry(hass)
+    await poll(hass, freezer)  # t=30: success, lastSuccess = t30
+
+    respond(aioclient_mock, exc=aiohttp.ClientError("unreachable"))
+
+    await poll(hass, freezer, 6)  # t=210
+    assert aioclient_mock.call_count == 3
+    await poll(hass, freezer, 6)  # t=390
+    assert aioclient_mock.call_count == 6
+    await poll(hass, freezer, 5)  # t=540: age 510 s < 540 s
+    assert state(hass, "SDS_P1") == "20.17"
+    await poll(hass, freezer)  # t=570: age 540 s
+    assert aioclient_mock.call_count == 9
+    assert state(hass, "SDS_P1") == STATE_UNAVAILABLE
+
+    respond(aioclient_mock, text=RADSENS)
+    await poll(hass, freezer, 6)  # t=750
+    assert aioclient_mock.call_count == 1
+    assert state(hass, "SDS_P1") == "20.17"
