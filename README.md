@@ -102,9 +102,9 @@ Sensor type `signal` gives the wifi signal strength of the sensor device.
 
 Sensor types `DNMS_noise_*` give the A-weighted sound level of a DNMS noise sensor in dB(A), per measurement interval (equivalent continuous level, minimum and maximum).
 
-Sensor type `RadSens_radiation_static` gives the radiation intensity of a ClimateGuard RadSens in µR/h (500 s average).
+Sensor type `RadSens_radiation_static` gives the radiation intensity of a ClimateGuard RadSens in μR/h (500 s average).
 
-Sensor types `SPS30_N*` give the particle number concentration of a Sensirion SPS30 in #/cm³. The values are cumulative: each includes all smaller particle sizes (e.g. `SPS30_N1` includes `SPS30_N05`). Sensor type `SPS30_TS` gives the typical particle size in µm.
+Sensor types `SPS30_N*` give the particle number concentration of a Sensirion SPS30 in #/cm³. The values are cumulative: each includes all smaller particle sizes (e.g. `SPS30_N1` includes `SPS30_N05`). Sensor type `SPS30_TS` gives the typical particle size in μm.
 
 Please open an issue if you want to see other attributes and provide me with a sample of your sensor data by calling `http://192.168.x.y/data.json`.
 

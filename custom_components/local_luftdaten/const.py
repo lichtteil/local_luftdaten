@@ -252,11 +252,11 @@ SENSOR_DESCRIPTIONS = {
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SENSOR_RADSENS_RADIATION_STATIC: SensorEntityDescription(
-        # No radiation device class in HA; RadSens reports µR/h averaged over 500 s
+        # No radiation device class in HA; RadSens reports μR/h averaged over 500 s
         icon='mdi:radioactive',
         key=SENSOR_RADSENS_RADIATION_STATIC,
         name='Radiation',
-        native_unit_of_measurement='µR/h',
+        native_unit_of_measurement='μR/h',
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SENSOR_SCD30_CO2: SensorEntityDescription(
@@ -364,7 +364,7 @@ SENSOR_DESCRIPTIONS = {
         icon='mdi:ruler',
         key=SENSOR_SPS30_TS,
         name='Typical particle size',
-        native_unit_of_measurement='µm',
+        native_unit_of_measurement='μm',
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SENSOR_SEN5X_P0: SensorEntityDescription(
