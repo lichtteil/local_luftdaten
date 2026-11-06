@@ -28,6 +28,9 @@ except ImportError:
         CONCENTRATION_PARTS_PER_MILLION as UNIT_PARTS_PER_MILLION,
     )
 
+# HA < 2025.10 has no PM4 device class; PM25 is the closest fallback there.
+DEVICE_CLASS_PM4 = getattr(SensorDeviceClass, 'PM4', SensorDeviceClass.PM25)
+
 DOMAIN = "local_luftdaten"
 
 DEFAULT_NAME = 'Luftdaten Sensor'
@@ -308,7 +311,7 @@ SENSOR_DESCRIPTIONS = {
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SENSOR_SPS30_P4: SensorEntityDescription(
-        device_class=SensorDeviceClass.PM25, # SensorDeviceClass.PM4 not supported.
+        device_class=DEVICE_CLASS_PM4,
         key=SENSOR_SPS30_P4,
         name='PM4',
         native_unit_of_measurement=UNIT_MICROGRAMS_PER_CUBIC_METER,
@@ -336,7 +339,7 @@ SENSOR_DESCRIPTIONS = {
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SENSOR_SEN5X_P4: SensorEntityDescription(
-        device_class=SensorDeviceClass.PM25, # SensorDeviceClass.PM4 not supported.
+        device_class=DEVICE_CLASS_PM4,
         key=SENSOR_SEN5X_P4,
         name='PM4',
         native_unit_of_measurement=UNIT_MICROGRAMS_PER_CUBIC_METER,

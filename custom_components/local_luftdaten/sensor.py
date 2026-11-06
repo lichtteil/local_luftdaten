@@ -26,6 +26,7 @@ from .const import (
     DEFAULT_RESOURCE,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_VERIFY_SSL,
+    DEVICE_CLASS_PM4,
     SENSOR_DESCRIPTIONS,
 )
 from homeassistant.const import (
@@ -155,7 +156,7 @@ class LuftdatenSensor(SensorEntity):
     @property
     def icon(self):
         """Return the icon to use in the frontend, if any."""
-        if self.device_class in [SensorDeviceClass.PM1, SensorDeviceClass.PM25]:
+        if self.device_class in [SensorDeviceClass.PM1, SensorDeviceClass.PM25, DEVICE_CLASS_PM4]:
             return 'mdi:thought-bubble-outline'
         elif self.device_class == SensorDeviceClass.PM10:
             return 'mdi:thought-bubble'
@@ -169,6 +170,7 @@ class LuftdatenSensor(SensorEntity):
             SensorDeviceClass.HUMIDITY,
             SensorDeviceClass.PM1,
             SensorDeviceClass.PM25,
+            DEVICE_CLASS_PM4,
             SensorDeviceClass.PM10,
             SensorDeviceClass.PRESSURE,
             SensorDeviceClass.TEMPERATURE,
