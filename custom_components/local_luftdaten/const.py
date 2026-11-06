@@ -28,6 +28,8 @@ except ImportError:
         CONCENTRATION_PARTS_PER_MILLION as UNIT_PARTS_PER_MILLION,
     )
 
+UNIT_PARTICLES_PER_CUBIC_CENTIMETER = '#/cm³'
+
 DOMAIN = "local_luftdaten"
 
 DEFAULT_NAME = 'Luftdaten Sensor'
@@ -69,6 +71,12 @@ SENSOR_SPS30_P0 = 'SPS30_P0'
 SENSOR_SPS30_P1 = 'SPS30_P1'
 SENSOR_SPS30_P2 = 'SPS30_P2'
 SENSOR_SPS30_P4 = 'SPS30_P4'
+SENSOR_SPS30_N05 = 'SPS30_N05'
+SENSOR_SPS30_N1 = 'SPS30_N1'
+SENSOR_SPS30_N25 = 'SPS30_N25'
+SENSOR_SPS30_N4 = 'SPS30_N4'
+SENSOR_SPS30_N10 = 'SPS30_N10'
+SENSOR_SPS30_TS = 'SPS30_TS'
 SENSOR_SEN5X_P0 = 'SEN5X_P0'
 SENSOR_SEN5X_P1 = 'SEN5X_P1'
 SENSOR_SEN5X_P2 = 'SEN5X_P2'
@@ -244,11 +252,11 @@ SENSOR_DESCRIPTIONS = {
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SENSOR_RADSENS_RADIATION_STATIC: SensorEntityDescription(
-        # No radiation device class in HA; RadSens reports µR/h averaged over 500 s
+        # No radiation device class in HA; RadSens reports μR/h averaged over 500 s
         icon='mdi:radioactive',
         key=SENSOR_RADSENS_RADIATION_STATIC,
         name='Radiation',
-        native_unit_of_measurement='µR/h',
+        native_unit_of_measurement='μR/h',
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SENSOR_SCD30_CO2: SensorEntityDescription(
@@ -312,6 +320,51 @@ SENSOR_DESCRIPTIONS = {
         key=SENSOR_SPS30_P4,
         name='PM4',
         native_unit_of_measurement=UNIT_MICROGRAMS_PER_CUBIC_METER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    # No particle count device class in HA. Counts are cumulative: each value
+    # includes all smaller sizes (e.g. PM1 count includes PM0.5 count).
+    SENSOR_SPS30_N05: SensorEntityDescription(
+        icon='mdi:counter',
+        key=SENSOR_SPS30_N05,
+        name='PM0.5 count',
+        native_unit_of_measurement=UNIT_PARTICLES_PER_CUBIC_CENTIMETER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SENSOR_SPS30_N1: SensorEntityDescription(
+        icon='mdi:counter',
+        key=SENSOR_SPS30_N1,
+        name='PM1 count',
+        native_unit_of_measurement=UNIT_PARTICLES_PER_CUBIC_CENTIMETER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SENSOR_SPS30_N25: SensorEntityDescription(
+        icon='mdi:counter',
+        key=SENSOR_SPS30_N25,
+        name='PM2.5 count',
+        native_unit_of_measurement=UNIT_PARTICLES_PER_CUBIC_CENTIMETER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SENSOR_SPS30_N4: SensorEntityDescription(
+        icon='mdi:counter',
+        key=SENSOR_SPS30_N4,
+        name='PM4 count',
+        native_unit_of_measurement=UNIT_PARTICLES_PER_CUBIC_CENTIMETER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SENSOR_SPS30_N10: SensorEntityDescription(
+        icon='mdi:counter',
+        key=SENSOR_SPS30_N10,
+        name='PM10 count',
+        native_unit_of_measurement=UNIT_PARTICLES_PER_CUBIC_CENTIMETER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SENSOR_SPS30_TS: SensorEntityDescription(
+        # No device class: SensorDeviceClass.DISTANCE does not fit a particle size
+        icon='mdi:ruler',
+        key=SENSOR_SPS30_TS,
+        name='Typical particle size',
+        native_unit_of_measurement='μm',
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SENSOR_SEN5X_P0: SensorEntityDescription(
